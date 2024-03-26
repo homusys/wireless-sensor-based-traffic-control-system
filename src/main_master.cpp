@@ -1,0 +1,699 @@
+/** +++++++++++++++++++++++++++++++++++++++++++++
+ * Copyright (C) 2024 Carl Matthew Arzadon
+ * All Rights Reserved 
+ * 
+ * Unauthorized copying of this file, via any 
+ * medium is strictly prohibited. Propietary 
+ * and confidential.
+ * 
+ * @author Carl Matthew Arzadon
+ * +++++++++++++++++++++++++++++++++++++++++++ */
+
+/// @todo debug traffic light not switching
+#include <Arduino.h>
+#include <SPI.h>
+#include "RF24.h"
+#include "RF24Network.h"
+
+
+// ========= BOARD CONFIG ========= //
+#define BOARD_MASTER 1
+
+
+#include "boards.h"
+#include "datapack.h"
+#include "events.h"
+#include "sensor.h"
+
+
+// ========= VARIABLES ========= //
+RF24 radio(NRF24L01_CE, NRF24L01_CSN);
+RF24Network network(radio);
+unsigned long sensor_times[SENSOR_COUNT] = {0};
+enum SensorState sensor_previous_states[SENSOR_COUNT];
+enum SensorState main_sensor_states[SENSOR_COUNT];
+
+enum Events previous_event, current_event;
+unsigned long current_event_time_last, current_event_time_limit;
+int event_cooldowns[EVENT_COUNT];
+bool is_yellow, is_finished;
+
+unsigned long time_last = 0;
+
+
+void _print_event(enum Events e) {
+    switch (e) {
+    case EVENT_00: Serial.println("EVENT_00"); break;
+    case EVENT_1A: Serial.println("EVENT_1A"); break;
+    case EVENT_1B: Serial.println("EVENT_1B"); break;
+    case EVENT_1C: Serial.println("EVENT_1C"); break;
+    case EVENT_2A: Serial.println("EVENT_2A"); break;
+    case EVENT_2B: Serial.println("EVENT_2B"); break;
+    case EVENT_2C: Serial.println("EVENT_2C"); break;
+    case EVENT_3A: Serial.println("EVENT_3A"); break;
+    case EVENT_3B: Serial.println("EVENT_3B"); break;
+    case EVENT_4A: Serial.println("EVENT_4A"); break;
+    case EVENT_4B: Serial.println("EVENT_4B"); break;
+    case EVENT_5A: Serial.println("EVENT_5A"); break;
+    case EVENT_5B: Serial.println("EVENT_5B"); break;
+    case EVENT_6A: Serial.println("EVENT_6A"); break;
+    case EVENT_6B: Serial.println("EVENT_6B"); break;
+    }
+}
+
+
+
+/// @brief Reset sensor time with current sensor state value of 0.
+void reset_sensor_data_times(void) {
+    // Serial.println("reset_sensor_data_times::start");
+    for (size_t i=0; i<SENSOR_COUNT; ++i) {
+        if (main_sensor_states[i] == INACTIVE) {
+            // Serial.print("reset_sensor_data_times::reset_sensor_index_");
+            // Serial.println(i);
+            sensor_times[i] = millis();
+        }
+    }
+    // Serial.println("reset_sensor_data_times::finish");
+}
+
+
+/**
+ * Record the time the sensor data arrived to the mainboard. The time
+ * is used to check for conditions and execute specified scenarios.
+ * @param sensor_index the the id of the sensor.
+*/
+void record_sensor_data_time(int sensor_index) {
+    Serial.println("record_sensor_data_times::start");
+    if ((sensor_previous_states[sensor_index] != main_sensor_states[sensor_index] ) &&
+         main_sensor_states[sensor_index] != INACTIVE) 
+    {
+        sensor_times[sensor_index] = millis();
+    }
+    Serial.println("record_sensor_data_times::finish");
+}
+
+
+void force_record_sensor_data_time(int sensor_index) {
+    if (main_sensor_states[sensor_index] != INACTIVE) {
+        sensor_times[sensor_index] = millis();
+    }
+}
+
+
+/**
+ * Receive sensor data from other boards.
+*/
+void process_sensor_data(void) {
+    // Serial.println("process_sensor_data::start");
+    RF24NetworkHeader recv_h;
+    DataPack recv_dp;
+
+    while (network.available()) {
+        // Serial.println("process_sensor_data::available_data");
+        network.read(recv_h, &recv_dp, sizeof(DataPack));
+
+        
+        if (recv_dp.type == SENSOR_T) {
+            // Serial.println("process_sensor_data::sensor_data_available");
+
+            switch (recv_h.from_node) {
+                case board3:
+                    // Serial.println("process_sensor_data::case_3");
+                    main_sensor_states[SENSOR_5] = recv_dp.ss[SENSOR_5];
+                    record_sensor_data_time(5);
+                    break;
+
+
+                case board4:
+                    // Serial.println("process_sensor_data::case_4");
+                    main_sensor_states[SENSOR_6] = recv_dp.ss[SENSOR_6];
+                    record_sensor_data_time(6);
+                    break;
+
+
+                case board5:
+                    // Serial.println("process_sensor_data::case_5");
+                    main_sensor_states[SENSOR_1] = recv_dp.ss[SENSOR_1];
+                    main_sensor_states[SENSOR_3] = recv_dp.ss[SENSOR_3];
+                    main_sensor_states[SENSOR_7] = recv_dp.ss[SENSOR_7];
+                    record_sensor_data_time(1);
+                    record_sensor_data_time(3);
+                    record_sensor_data_time(7);
+                    break;
+
+
+                case board6:
+                    // Serial.println("process_sensor_data::case_6");
+                    main_sensor_states[SENSOR_2] = recv_dp.ss[SENSOR_2];
+                    main_sensor_states[SENSOR_4] = recv_dp.ss[SENSOR_4];
+                    main_sensor_states[SENSOR_8] = recv_dp.ss[SENSOR_8];
+                    record_sensor_data_time(2);
+                    record_sensor_data_time(4);
+                    record_sensor_data_time(8);
+                    break;
+
+                case board7:
+                    Serial.println("process_sensor_data::case_7");
+                    Serial.println("process_sensor_data::invalid_case");
+                    break;
+
+
+                case board8:
+                    case 8: // ARDUINO BOARD 8 SENSOR 8
+                    Serial.println("process_sensor_data::case_8");
+                    Serial.println("process_sensor_data::invalid_case");
+                    break;
+            }
+        }
+    }
+
+    reset_sensor_data_times();
+    // Serial.println("process_sensor_data::finish");
+}
+
+/// @brief updates the current event and the event array
+void update_current_event(enum Events e, unsigned long ct, int cdv) {
+    Serial.println("update_current_event::start");
+
+    Serial.print("is_yellow: ");
+    Serial.println(is_yellow);
+
+    _print_event(e);
+    _print_event(current_event);
+
+    previous_event = current_event;
+
+    if (e == EVENT_00 || cdv > 0) {
+        current_event = EVENT_00;
+        current_event_time_limit = EVENT_00_ACTIVE_TIME_MS;
+        return;
+    }
+
+    /* If current event is a yellow light */
+    if (is_yellow) {
+        switch (current_event) {
+        case EVENT_1A:
+            if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS &&
+                ct - sensor_times[SENSOR_7] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_1C;
+                current_event_time_limit = EVENT_1C_ACTIVE_TIME_MS;
+            }
+            else if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_1B;
+                current_event_time_limit = EVENT_1C_ACTIVE_TIME_MS;
+            }
+            break;
+
+            
+        case EVENT_2A:
+            if (ct - sensor_times[SENSOR_2] >= ACTIVE_SENSOR_TIME_MS &&
+                ct - sensor_times[SENSOR_8] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_2C;
+                current_event_time_limit = EVENT_2C_ACTIVE_TIME_MS;
+            }
+            else if (ct - sensor_times[SENSOR_2] >= ACTIVE_SENSOR_TIME_MS)
+            {
+                current_event = EVENT_2B;
+                current_event_time_limit = EVENT_2B_ACTIVE_TIME_MS;
+            }
+            break;
+
+
+        case EVENT_3A:
+            if (ct - sensor_times[SENSOR_3] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_3B;
+                current_event_time_limit = EVENT_3B_ACTIVE_TIME_MS;
+            }
+            break;
+
+
+        case EVENT_4A:
+            if (ct - sensor_times[SENSOR_4] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_4B;
+                current_event_time_limit = EVENT_4B_ACTIVE_TIME_MS;
+            }
+            break;
+
+
+        case EVENT_5A:
+            if (ct - sensor_times[SENSOR_5] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_5B;
+                current_event_time_limit = EVENT_5B_ACTIVE_TIME_MS;
+            }
+            break;
+
+            
+        case EVENT_6A:
+            if (ct - sensor_times[SENSOR_6] >= ACTIVE_SENSOR_TIME_MS) 
+            {
+                current_event = EVENT_6B;
+                current_event_time_limit = EVENT_6B_ACTIVE_TIME_MS;
+            }
+            break;
+        }
+    }
+    /* Must be a yellow event */
+    else { 
+        is_yellow = true;
+        current_event = e;
+        switch (e) {
+        case EVENT_1A:
+            current_event_time_limit = EVENT_1A_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_2A:
+            current_event_time_limit = EVENT_2A_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_3A:
+            current_event_time_limit = EVENT_3A_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_4A:
+            current_event_time_limit = EVENT_4A_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_5A:
+            current_event_time_limit = EVENT_5A_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_6A:
+            current_event_time_limit = EVENT_6A_ACTIVE_TIME_MS;
+            break;
+        }
+    }
+    Serial.println("update_current_event::finish");
+}
+
+
+/// @brief queue events considering sensor time conditions
+void process_events(void) {
+    Serial.println("process_events::start");
+    unsigned long current_time = millis();
+    bool no_active = true;
+
+    _print_event(current_event);
+
+    for (size_t i=0; i<SENSOR_COUNT-2; ++i) { /// don't include sensor 7 and 8 on iteration.
+        Serial.print("process_events::sensor_index_");
+        Serial.println(i);
+
+
+        if (current_time - sensor_times[i] >= PRE_ACTIVE_SENSOR_TIME_MS) {
+            // Serial.println("check_sensors::case_ok");
+            Serial.println(current_time - sensor_times[i]);
+            no_active = false; /// there is an active sensor
+
+            switch (i) {
+            case SENSOR_1:
+                Serial.println("check_sensors::case_solo_pre_active_sensor_1");
+                // if (event_cooldowns[EVENT_1] != 0) { continue; }
+                update_current_event(EVENT_1A, current_time, event_cooldowns[EVENT_1]);
+                break;
+
+            case SENSOR_2: 
+                Serial.println("check_sensors::case_solo_pre_active_sensor_2");
+                // if (event_cooldowns[EVENT_2] != 0) { continue; }
+                update_current_event(EVENT_2A, current_time, event_cooldowns[EVENT_2]); 
+                break;
+                
+            case SENSOR_3: 
+                Serial.println("check_sensors::case_solo_pre_active_sensor_3");
+                // if (event_cooldowns[EVENT_3] != 0) { continue; }
+                update_current_event(EVENT_3A, current_time, event_cooldowns[EVENT_3]); 
+                break;
+
+            case SENSOR_4: 
+                Serial.println("check_sensors::case_solo_pre_active_sensor_4");
+                // if (event_cooldowns[EVENT_4] != 0) { continue; }
+                update_current_event(EVENT_4A, current_time, event_cooldowns[EVENT_4]); 
+                break;
+
+            case SENSOR_5: 
+                Serial.println("check_sensors::case_solo_pre_active_sensor_5");
+                // if (event_cooldowns[EVENT_5] != 0) { Serial.println("---- ON COOLDOWN ----"); continue; }
+                update_current_event(EVENT_5A, current_time, event_cooldowns[EVENT_5]); 
+                break;
+
+            case SENSOR_6: 
+                Serial.println("check_sensors::case_solo_pre_active_sensor_6");
+                // if (event_cooldowns[EVENT_6] != 0) { continue; }
+                update_current_event(EVENT_6A, current_time, event_cooldowns[EVENT_6]); 
+                break;
+            }
+        }
+    }
+
+
+    /* Go back to default states */
+    if (no_active) {
+        update_current_event(EVENT_00, current_time, 0);
+    }
+
+    Serial.println("process_events::finish");
+    reset_sensor_data_times();
+}
+
+
+    
+
+/**
+ * Send current event data to other boards inorder to update their
+ * own current event.
+*/
+void broadcast_event(void) {
+    Serial.println("broadcast_event");
+
+
+    RF24NetworkHeader send_b2(board2);
+    RF24NetworkHeader send_b3(board3);
+    RF24NetworkHeader send_b4(board4);
+    RF24NetworkHeader send_b5(board5);
+    RF24NetworkHeader send_b6(board6);
+    RF24NetworkHeader send_b7(board7);
+    RF24NetworkHeader send_b8(board8);
+    
+    DataPack send_dp;
+    
+    send_dp.type  = EVENT_T;
+    send_dp.event = current_event;
+    
+
+    if (previous_event != current_event) {
+        network.write(send_b2, &send_dp, sizeof(DataPack));
+        network.write(send_b3, &send_dp, sizeof(DataPack));
+        network.write(send_b4, &send_dp, sizeof(DataPack));
+        network.write(send_b5, &send_dp, sizeof(DataPack));
+        network.write(send_b6, &send_dp, sizeof(DataPack));
+        network.write(send_b7, &send_dp, sizeof(DataPack));
+        network.write(send_b8, &send_dp, sizeof(DataPack));
+    }
+}
+
+
+/// @brief turn off all relay pins.
+void turn_off_relays(void) {
+    if (previous_event != current_event) {
+
+        digitalWrite(LT1_RELAY, LOW);
+        digitalWrite(R1_RELAY , LOW);
+        digitalWrite(Y1_RELAY , LOW);
+        digitalWrite(G1_RELAY , LOW);
+        digitalWrite(R3_RELAY , LOW);
+        digitalWrite(Y3_RELAY , LOW);
+        digitalWrite(G3_RELAY , LOW);
+
+    }
+}
+
+
+void decrease_cooldowns(void) {
+    Serial.println("decrease_cooldowns::start");
+    for (size_t i=0; i<EVENT_COUNT; ++i) {
+        Serial.print("event_index: ");
+        Serial.print(i);
+
+        Serial.print(" | cooldown: ");
+        Serial.println(event_cooldowns[i]);
+
+        if (event_cooldowns[i] > 0) {
+            event_cooldowns[i] -= 1;
+        }
+    }
+    Serial.println("decrease_cooldowns::finish");
+}
+
+
+/// @brief run events specific to the master board.
+void run_event(void) {
+    Serial.println("run_event::start");
+
+    Serial.print("current_event_time_limit: ");
+    Serial.println(current_event_time_limit);
+
+    switch (current_event) {
+
+        case EVENT_00: 
+            digitalWrite(G1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            is_yellow = false;
+            decrease_cooldowns();
+            break;
+
+
+        case EVENT_1A: 
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_1B: 
+            if (event_cooldowns[EVENT_1] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
+
+            force_record_sensor_data_time(SENSOR_1);
+            force_record_sensor_data_time(SENSOR_7);
+
+            break;
+
+
+        case EVENT_1C: 
+            if (event_cooldowns[EVENT_1] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
+            
+            force_record_sensor_data_time(SENSOR_1);
+            force_record_sensor_data_time(SENSOR_7);
+
+            break;
+
+
+        case EVENT_2A: 
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_2B:
+            if (event_cooldowns[EVENT_2] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(G3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
+
+            force_record_sensor_data_time(SENSOR_1);
+            force_record_sensor_data_time(SENSOR_7);
+
+            break;
+
+
+        case EVENT_2C: 
+            if (event_cooldowns[EVENT_2] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(G3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
+
+            force_record_sensor_data_time(SENSOR_1);
+            force_record_sensor_data_time(SENSOR_7);
+            
+            break;
+
+
+        case EVENT_3A: 
+            digitalWrite(G1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_3B: 
+            if (event_cooldowns[EVENT_3] > 0) { return; }
+            digitalWrite(G1_RELAY,  HIGH);
+            digitalWrite(R3_RELAY,  HIGH);
+            digitalWrite(LT1_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_3] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_3] = EVENT_COOLDOWN;
+
+            force_record_sensor_data_time(SENSOR_3);
+
+            break;
+
+
+        case EVENT_4A: 
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_4B: 
+            if (event_cooldowns[EVENT_4] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_4] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_4] = EVENT_COOLDOWN;
+            
+            force_record_sensor_data_time(SENSOR_4);
+
+            break;
+
+
+        case EVENT_5A: 
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_5B: 
+            if (event_cooldowns[EVENT_5] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_5] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            is_yellow = false;
+            event_cooldowns[EVENT_5] = EVENT_COOLDOWN;
+
+            force_record_sensor_data_time(SENSOR_5);
+
+            break;
+
+
+        case EVENT_6A: 
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            break;
+
+
+        case EVENT_6B: 
+            if (event_cooldowns[EVENT_6] > 0) { return; }
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+
+            // if (is_done) {
+            //     is_yellow = false;
+            //     decrease_cooldowns();
+            //     event_cooldowns[EVENT_6] = EVENT_COOLDOWN;
+            // }
+
+            delay(current_event_time_limit);
+            decrease_cooldowns();
+            is_yellow = false;
+            event_cooldowns[EVENT_6] = EVENT_COOLDOWN;
+            
+            force_record_sensor_data_time(SENSOR_6);
+
+            break;
+    }
+    Serial.println("run_event::finish");
+}
+
+
+/// @brief Starting execution routine
+void setup(void) {
+    
+    current_event  = EVENT_00;
+    previous_event = EVENT_00;
+    is_yellow = false;
+
+
+    SPI.begin();
+    Serial.begin(115200);
+
+    pinMode(R1_RELAY, OUTPUT);
+    pinMode(Y1_RELAY, OUTPUT);
+    pinMode(G1_RELAY, OUTPUT);
+    pinMode(R3_RELAY, OUTPUT);
+    pinMode(Y3_RELAY, OUTPUT);
+    pinMode(G3_RELAY, OUTPUT);
+
+    // ========= NRF24L01 SETUP ========= //
+    radio.begin();
+    radio.setPayloadSize(sizeof(DataPack));
+    radio.setDataRate(RF24_2MBPS);
+    radio.setPALevel(RF24_PA_MIN);
+
+    network.begin(90, current_board);
+}   
+
+
+void loop(void) {
+    Serial.println("+++++loop::start+++++");
+
+
+    network.update();
+    process_sensor_data();
+    process_events();
+
+    broadcast_event();
+    turn_off_relays();
+    run_event();
+
+    delay(1000);
+
+    Serial.println("-----loop::ended-----");
+}
