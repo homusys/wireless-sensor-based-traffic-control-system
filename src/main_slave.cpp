@@ -320,6 +320,8 @@ void turn_off_relay() {
 
 /// @brief run current event received from master board. 
 void run_event(void) {
+    turn_off_relay();
+    
     Serial.println("run_event::start");
     
 
