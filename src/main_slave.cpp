@@ -64,6 +64,29 @@ bool event_active, seq_active;
 
 
 #if !(BOARD_A2)
+
+
+void _print_event(enum Events e) {
+    switch (e) {
+    case EVENT_00: Serial.println("EVENT_00"); break;
+    case EVENT_1A: Serial.println("EVENT_1A"); break;
+    case EVENT_1B: Serial.println("EVENT_1B"); break;
+    case EVENT_1C: Serial.println("EVENT_1C"); break;
+    case EVENT_2A: Serial.println("EVENT_2A"); break;
+    case EVENT_2B: Serial.println("EVENT_2B"); break;
+    case EVENT_2C: Serial.println("EVENT_2C"); break;
+    case EVENT_3A: Serial.println("EVENT_3A"); break;
+    case EVENT_3B: Serial.println("EVENT_3B"); break;
+    case EVENT_4A: Serial.println("EVENT_4A"); break;
+    case EVENT_4B: Serial.println("EVENT_4B"); break;
+    case EVENT_5A: Serial.println("EVENT_5A"); break;
+    case EVENT_5B: Serial.println("EVENT_5B"); break;
+    case EVENT_6A: Serial.println("EVENT_6A"); break;
+    case EVENT_6B: Serial.println("EVENT_6B"); break;
+    }
+}
+
+
 /**
  * Check if sensor is not reaching its maximum distance, this would
  * mean that there is an object in the path thus it is assumed to be 
@@ -236,10 +259,7 @@ void process_lesser_slave_sensor_data(RF24NetworkHeader &recv_h, DataPack *recv_
 
 
 void process_events(enum Events *e, bool *ea) {
-    if (previous_event != *e) {
-        previous_event = current_event;
-        current_event = *e;
-    }
+    current_event = *e;
 
     if (event_active != *ea) {
         event_active = *ea;
@@ -248,10 +268,7 @@ void process_events(enum Events *e, bool *ea) {
 
 
 void process_sequence(enum Events_Seq *s, bool *sa) {
-    if (previous_seq != *s) {
-        previous_seq = current_seq;
-        current_seq = *s;
-    }
+    current_seq = *s;
 
     if (seq_active != *sa) {
         seq_active = *sa;
@@ -263,6 +280,9 @@ void observe_events(void) {
     Serial.println("observe_events::start");
     RF24NetworkHeader recv_h;
     DataPack recv_dp;
+
+    previous_event = current_event;
+    previous_seq = current_seq;
 
     while (network.available()) {
         Serial.println("observe_events::network_available");
@@ -287,6 +307,8 @@ void observe_events(void) {
 
 void turn_off_relay() {
     if ((previous_event != current_event) || (previous_seq != current_seq)) {
+        _print_event(previous_event);
+        _print_event(current_event);
 
         #if   BOARD_A2
 
@@ -321,7 +343,7 @@ void turn_off_relay() {
 /// @brief run current event received from master board. 
 void run_event(void) {
     turn_off_relay();
-    
+
     Serial.println("run_event::start");
     
 

@@ -12,7 +12,7 @@
 #ifndef _SENSOR_H_
 #define _SENSOR_H_
 
-#define SCAN_DISTANCE_CM 5
+#define SCAN_DISTANCE_CM 420
 #define MAX_DISTANCE_CM  450
 
 #define PRE_ACTIVE_SENSOR_TIME_MS 10 * 1000

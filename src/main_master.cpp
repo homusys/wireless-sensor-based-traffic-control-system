@@ -800,7 +800,5 @@ void loop(void) {
         run_event();
     }
 
-    delay(1000);
-
     Serial.println("-----loop::ended-----");
 }
