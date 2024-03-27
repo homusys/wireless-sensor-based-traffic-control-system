@@ -30,7 +30,8 @@ RF24 radio(NRF24L01_CE, NRF24L01_CSN);
 RF24Network network(radio);
 
 enum Events previous_event, current_event;
-
+enum Events_Seq previous_seq, current_seq;
+bool event_active, seq_active;
 
 // previous sensor_states
 #if BOARD_A3 
@@ -234,6 +235,30 @@ void process_lesser_slave_sensor_data(RF24NetworkHeader &recv_h, DataPack *recv_
 #endif
 
 
+void process_events(enum Events *e, bool *ea) {
+    if (previous_event != *e) {
+        previous_event = current_event;
+        current_event = *e;
+    }
+
+    if (event_active != *ea) {
+        event_active = *ea;
+    }
+}
+
+
+void process_sequence(enum Events_Seq *s, bool *sa) {
+    if (previous_seq != *s) {
+        previous_seq = current_seq;
+        current_seq = *s;
+    }
+
+    if (seq_active != *sa) {
+        seq_active = *sa;
+    }
+}
+
+
 void observe_events(void) {
     Serial.println("observe_events::start");
     RF24NetworkHeader recv_h;
@@ -246,10 +271,49 @@ void observe_events(void) {
         #if BOARD_A5 || BOARD_A6
             process_lesser_slave_sensor_data(recv_h, &recv_dp);
         #endif
+
+        if (recv_dp.type == EVENT_T) {
+            process_events(&recv_dp.event, &recv_dp.event_active);
+        }
+        else if(recv_dp.type == SEQ_T) {
+            process_sequence(&recv_dp.seq, &recv_dp.seq_active);
+        }
+
     }
     Serial.println("observe_events::finish");
 }
 
+#if BOARD_A2 || BOARD_A3 || BOARD_A4
+
+void turn_off_relay() {
+    if ((previous_event != current_event) || (previous_seq != current_seq)) {
+
+        #if   BOARD_A2
+
+            digitalWrite(LT2_RELAY, LOW);
+            digitalWrite(R2_RELAY, LOW);
+            digitalWrite(Y2_RELAY, LOW);
+            digitalWrite(G2_RELAY, LOW);
+            digitalWrite(R4_RELAY, LOW);
+            digitalWrite(Y4_RELAY, LOW);
+            digitalWrite(G4_RELAY, LOW);
+
+        #elif BOARD_A3
+        
+            digitalWrite(PR1_RELAY, LOW);
+            digitalWrite(PG1_RELAY, LOW);
+        
+        
+        #elif BOARD_A4
+        
+            digitalWrite(PR2_RELAY, LOW);
+            digitalWrite(PG2_RELAY, LOW);
+        
+        #endif
+    }
+}
+
+#endif
 
 
 #if BOARD_A2 || BOARD_A3 || BOARD_A4
@@ -258,188 +322,228 @@ void observe_events(void) {
 void run_event(void) {
     Serial.println("run_event::start");
     
-    switch (current_event) {
-    case EVENT_00: 
-        #if   BOARD_A2
-            digitalWrite(G2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+
+    if (event_active) {
+        switch (current_event) {
+        case EVENT_00: 
+            #if   BOARD_A2
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_1A: 
-        #if   BOARD_A2
-            digitalWrite(Y2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_1A: 
+            #if   BOARD_A2
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_1B: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(G4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_1B: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(G4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_1C: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH); 
-            digitalWrite(G4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_1C: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH); 
+                digitalWrite(G4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_2A: 
-        #if   BOARD_A2
-            digitalWrite(Y2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_2A: 
+            #if   BOARD_A2
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_2B: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_2B: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_2C: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_2C: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_3A: 
-        #if   BOARD_A2
-            digitalWrite(Y2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_3A: 
+            #if   BOARD_A2
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_3B: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_3B: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_4A: 
-        #if   BOARD_A2
-            digitalWrite(G2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_4A: 
+            #if   BOARD_A2
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_4B: 
-        #if   BOARD_A2
-            digitalWrite(G2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-            digitalWrite(LT2_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_4B: 
+            #if   BOARD_A2
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+                digitalWrite(LT2_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_5A: 
-        #if   BOARD_A2
-            digitalWrite(Y2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_5A: 
+            #if   BOARD_A2
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_5B: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PG1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PG2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_5B: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PG1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PG2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_6A: 
-        #if   BOARD_A2
-            digitalWrite(Y2_RELAY, HIGH);
-            digitalWrite(Y4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PR1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PR2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_6A: 
+            #if   BOARD_A2
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
 
 
-    case EVENT_6B: 
-        #if   BOARD_A2
-            digitalWrite(R2_RELAY, HIGH);
-            digitalWrite(R4_RELAY, HIGH);
-        #elif BOARD_A3
-            digitalWrite(PG1_RELAY, HIGH);
-        #elif BOARD_A4
-            digitalWrite(PG2_RELAY, HIGH);
-        #endif
-        break;
+        case EVENT_6B: 
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PG1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PG2_RELAY, HIGH);
+            #endif
+            break;
+        }
     }
 
+
+    else if (seq_active) {
+        switch (current_seq) {
+        case SEQ_01:
+            #if   BOARD_A2
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_02:
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_03:
+            #if   BOARD_A2
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(G4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PG1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PG2_RELAY, HIGH);
+            #endif
+        }
+
+    }
     Serial.println("run_event::start");       
 }
 
@@ -450,17 +554,34 @@ void setup(void) {
 
     previous_event = EVENT_00;
     current_event  = EVENT_00;
+    previous_seq = SEQ_01;
+    previous_seq = SEQ_01;
+    event_active = true;
+    seq_active = false;
 
     SPI.begin();
     Serial.begin(115200);
 
     #if BOARD_A2
+    
         pinMode(R2_RELAY, OUTPUT);
         pinMode(Y2_RELAY, OUTPUT);
         pinMode(G2_RELAY, OUTPUT);
         pinMode(R4_RELAY, OUTPUT);
         pinMode(Y4_RELAY, OUTPUT);
         pinMode(G4_RELAY, OUTPUT);
+
+
+    #elif BOARD_A3
+
+        pinMode(PR1_RELAY, OUTPUT);
+        pinMode(PG1_RELAY, OUTPUT);
+
+    #elif BOARD_A4
+
+        pinMode(PR2_RELAY, OUTPUT);
+        pinMode(PG2_RELAY, OUTPUT);
+
     #endif
 
     // ========= NRF24L01 SETUP ========= //

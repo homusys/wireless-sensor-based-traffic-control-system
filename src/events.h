@@ -1,3 +1,15 @@
+/** +++++++++++++++++++++++++++++++++++++++++++++
+ * Copyright (C) 2024 Carl Matthew Arzadon
+ * All Rights Reserved 
+ * 
+ * Unauthorized copying of this file, via any 
+ * medium is strictly prohibited. Propietary 
+ * and confidential.
+ * 
+ * @author Carl Matthew Arzadon
+ * +++++++++++++++++++++++++++++++++++++++++++ */
+
+
 #ifndef _EVENTS_H_
 #define _EVENTS_H_
 
@@ -60,7 +72,28 @@ enum Events {
 };
 
 
+/* ++++++++++++ EVENT SEQUENCE ENUM DEFINITION ++++++++++++ */
+/// @brief During default mode 2.1 an event sequence happens
+enum Events_Seq {
+    SEQ_01,
+    SEQ_02,
+    SEQ_03
+};
 
+
+#define SEQ_01_ACTIVE_TIME 90000
+#define SEQ_02_ACTIVE_TIME 15000
+#define SEQ_03_ACTIVE_TIME 15000
+
+
+/* ++++++++++++ DEFAULT MODE 2 CONSTANTS ++++++++++++ */
+#define GREEN_GRANT_06T07  15
+#define GREEN_GRANT_09T10  10
+#define GREEN_GRANT_10T11  15
+#define GREEN_GRANT_12T13  20
+#define GREEN_GRANT_13T14  15
+#define GREEN_GRANT_14T15  20
+#define GREEN_GRANT_15T16  15
 
 
 #endif

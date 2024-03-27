@@ -9,7 +9,6 @@
  * @author Carl Matthew Arzadon
  * +++++++++++++++++++++++++++++++++++++++++++ */
 
-/// @todo debug traffic light not switching
 #include <Arduino.h>
 #include <SPI.h>
 #include "RF24.h"
@@ -34,11 +33,24 @@ enum SensorState sensor_previous_states[SENSOR_COUNT];
 enum SensorState main_sensor_states[SENSOR_COUNT];
 
 enum Events previous_event, current_event;
+enum Events_Seq current_sequence, previous_sequence;
 unsigned long current_event_time_last, current_event_time_limit;
+unsigned long current_seq_time_last, current_seq_time_limit;
 int event_cooldowns[EVENT_COUNT];
-bool is_yellow, is_finished;
+int green_light_grant_counter;
+int green_light_grant_limit;
+
+bool is_yellow, is_finished, default_mode_two;
 
 unsigned long time_last = 0;
+
+
+void count_green(void) {
+    if (default_mode_two) {
+        green_light_grant_counter += 1;
+    }
+}
+
 
 
 void _print_event(enum Events e) {
@@ -383,6 +395,8 @@ void broadcast_event(void) {
     
     send_dp.type  = EVENT_T;
     send_dp.event = current_event;
+    send_dp.event_active = true;
+    send_dp.seq_active = false;
     
 
     if (previous_event != current_event) {
@@ -398,8 +412,8 @@ void broadcast_event(void) {
 
 
 /// @brief turn off all relay pins.
-void turn_off_relays(void) {
-    if (previous_event != current_event) {
+void turn_off_relays(int force) {
+    if ((previous_event != current_event) || force) {
 
         digitalWrite(LT1_RELAY, LOW);
         digitalWrite(R1_RELAY , LOW);
@@ -408,7 +422,6 @@ void turn_off_relays(void) {
         digitalWrite(R3_RELAY , LOW);
         digitalWrite(Y3_RELAY , LOW);
         digitalWrite(G3_RELAY , LOW);
-
     }
 }
 
@@ -459,11 +472,6 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
@@ -471,6 +479,8 @@ void run_event(void) {
 
             force_record_sensor_data_time(SENSOR_1);
             force_record_sensor_data_time(SENSOR_7);
+
+            count_green();
 
             break;
 
@@ -480,11 +490,6 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
@@ -492,6 +497,8 @@ void run_event(void) {
             
             force_record_sensor_data_time(SENSOR_1);
             force_record_sensor_data_time(SENSOR_7);
+
+            count_green();
 
             break;
 
@@ -506,12 +513,7 @@ void run_event(void) {
             if (event_cooldowns[EVENT_2] > 0) { return; }
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(G3_RELAY, HIGH);
-
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
-            // }
+            
 
             delay(current_event_time_limit);
             is_yellow = false;
@@ -519,6 +521,8 @@ void run_event(void) {
 
             force_record_sensor_data_time(SENSOR_1);
             force_record_sensor_data_time(SENSOR_7);
+
+            count_green();
 
             break;
 
@@ -528,11 +532,6 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(G3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
@@ -540,6 +539,8 @@ void run_event(void) {
 
             force_record_sensor_data_time(SENSOR_1);
             force_record_sensor_data_time(SENSOR_7);
+            
+            count_green();
             
             break;
 
@@ -556,11 +557,6 @@ void run_event(void) {
             digitalWrite(R3_RELAY,  HIGH);
             digitalWrite(LT1_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_3] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
@@ -568,6 +564,8 @@ void run_event(void) {
 
             force_record_sensor_data_time(SENSOR_3);
 
+            count_green();
+            
             break;
 
 
@@ -582,17 +580,14 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_4] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
             event_cooldowns[EVENT_4] = EVENT_COOLDOWN;
             
             force_record_sensor_data_time(SENSOR_4);
+
+            count_green();
 
             break;
 
@@ -608,17 +603,14 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_5] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             is_yellow = false;
             event_cooldowns[EVENT_5] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_5);
+
+            count_green();
 
             break;
 
@@ -634,11 +626,6 @@ void run_event(void) {
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            // if (is_done) {
-            //     is_yellow = false;
-            //     decrease_cooldowns();
-            //     event_cooldowns[EVENT_6] = EVENT_COOLDOWN;
-            // }
 
             delay(current_event_time_limit);
             decrease_cooldowns();
@@ -647,22 +634,134 @@ void run_event(void) {
             
             force_record_sensor_data_time(SENSOR_6);
 
+            count_green();
+
             break;
     }
     Serial.println("run_event::finish");
 }
 
 
+void broadcast_default_mode_2(void) {
+    Serial.println("broadcast_sequence");
+
+
+    RF24NetworkHeader send_b2(board2);
+    RF24NetworkHeader send_b3(board3);
+    RF24NetworkHeader send_b4(board4);
+    RF24NetworkHeader send_b5(board5);
+    RF24NetworkHeader send_b6(board6);
+    RF24NetworkHeader send_b7(board7);
+    RF24NetworkHeader send_b8(board8);
+    
+    DataPack send_dp;
+    
+    send_dp.type  = SEQ_T;
+    send_dp.seq   = current_sequence;
+    send_dp.seq_active = true;
+    send_dp.event_active = false;
+    
+
+    if (previous_event != current_event) {
+        network.write(send_b2, &send_dp, sizeof(DataPack));
+        network.write(send_b3, &send_dp, sizeof(DataPack));
+        network.write(send_b4, &send_dp, sizeof(DataPack));
+        network.write(send_b5, &send_dp, sizeof(DataPack));
+        network.write(send_b6, &send_dp, sizeof(DataPack));
+        network.write(send_b7, &send_dp, sizeof(DataPack));
+        network.write(send_b8, &send_dp, sizeof(DataPack));
+    }
+}
+
+
+/// @brief runs the sequence of default mode 2 for the main board.
+void run_default_mode_sequence(void) {
+    /// @todo record curret_seq_time_last as soon as default mode 2.1 is activated
+    switch (current_sequence) { 
+    case SEQ_01:
+        if (current_seq_time_limit != SEQ_01_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_01_ACTIVE_TIME; 
+        }
+
+        digitalWrite(G1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_event_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_02;
+        }
+        break;
+
+    
+    case SEQ_02:
+        if (current_seq_time_limit != SEQ_02_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_02_ACTIVE_TIME; 
+        }
+
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(G3_RELAY, HIGH);
+
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_event_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_03;
+        }
+        break;
+    
+    
+    case SEQ_03:
+        if (current_seq_time_limit != SEQ_03_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_03_ACTIVE_TIME; 
+        }
+
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(G3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_event_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_01;
+        }
+        break;
+    }
+}
+
+
+/// @todo reset the counter based on time
+void reset_counter(void) {
+
+}
+
+
+/// @todo setup grant limit based on time
+void setup_grant_limit(void) {
+    green_light_grant_limit = 0;
+}
+
+
+/// @todo check the current time to set active default mode
+/// @todo merge this routine from above
+void check_time_for_mode(void) {
+
+}
+
+
 /// @brief Starting execution routine
 void setup(void) {
-    
-    current_event  = EVENT_00;
-    previous_event = EVENT_00;
-    is_yellow = false;
-
-
     SPI.begin();
     Serial.begin(115200);
+    
+
+    current_event  = EVENT_00;
+    previous_event = EVENT_00;
+    current_sequence  = SEQ_01;
+    previous_sequence = SEQ_01;
+    is_yellow = false;
+    default_mode_two = false;
+    green_light_grant_counter = 0;
+    
+    setup_grant_limit();
 
     pinMode(R1_RELAY, OUTPUT);
     pinMode(Y1_RELAY, OUTPUT);
@@ -684,14 +783,22 @@ void setup(void) {
 void loop(void) {
     Serial.println("+++++loop::start+++++");
 
-
     network.update();
-    process_sensor_data();
-    process_events();
 
-    broadcast_event();
-    turn_off_relays();
-    run_event();
+    
+    if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two) {
+        broadcast_default_mode_2();
+        run_default_mode_sequence();
+
+    } else {
+        process_sensor_data();
+        process_events();
+
+        // run sequence
+        broadcast_event();
+        turn_off_relays(0);
+        run_event();
+    }
 
     delay(1000);
 
