@@ -17,7 +17,7 @@
 
 
 // ========= NETWORK CONSTANTS ========= //
-const uint16_t board1 = 000; // main_board  ARDUINO 1
+const uint16_t board1 = 000; // main_board  ARDUINO 1 (MEGA2560EMBED)
 const uint16_t board2 = 001; // slave_board ARDUINO 2
 const uint16_t board3 = 002; // slave_board ARDUINO 3
 
@@ -31,24 +31,27 @@ const uint16_t board8 = 005; // slave_board ARDUINO 8
 const uint16_t board_master = board1; // main_board
 
 
-#if defined(BOARD_MASTER)
+#if defined(BOARD_MASTER) 
     int8_t current_board = board1;
 
-    #define NRF24L01_MOSI 11
-    #define NRF24L01_MISO 12
-    #define NRF24L01_SCK  13
-    #define NRF24L01_CSN  10
-    #define NRF24L01_CE    9
+    #define NRF24L01_MOSI 51
+    #define NRF24L01_MISO 50
+    #define NRF24L01_SCK  52
+    #define NRF24L01_CSN   8
+    #define NRF24L01_CE    7
 
-    #define LT1_RELAY 8
+    #define LT1_RELAY 9
 
-    #define R1_RELAY 7
-    #define Y1_RELAY 6
-    #define G1_RELAY 5
+    #define R1_RELAY 10
+    #define Y1_RELAY 11
+    #define G1_RELAY 12
 
-    #define R3_RELAY 4
-    #define Y3_RELAY 3
-    #define G3_RELAY 2
+    #define R3_RELAY 14
+    #define Y3_RELAY 15
+    #define G3_RELAY 16
+
+    #define RTC_SCL  21
+    #define RTC_SDA  20
 
 
 #elif defined(BOARD_A2)
