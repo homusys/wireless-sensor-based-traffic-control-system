@@ -11,8 +11,10 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <Wire.h>
 #include "RF24.h"
 #include "RF24Network.h"
+#include "DS3231.h"
 
 
 // ========= BOARD CONFIG ========= //
@@ -26,6 +28,12 @@
 
 
 // ========= VARIABLES ========= //
+DS3231 rtc;
+bool h24 = false;
+bool hPM = false;
+int seq_run = 0;
+byte hour, prev_hour;
+
 RF24 radio(NRF24L01_CE, NRF24L01_CSN);
 RF24Network network(radio);
 unsigned long sensor_times[SENSOR_COUNT] = {0};
@@ -676,7 +684,13 @@ void broadcast_default_mode_2(void) {
 
 /// @brief runs the sequence of default mode 2 for the main board.
 void run_default_mode_sequence(void) {
-    /// @todo record curret_seq_time_last as soon as default mode 2.1 is activated
+    
+    if (seq_run == 1) {
+        current_seq_time_last = millis();
+    }
+
+    Serial.println(millis() - current_seq_time_last);
+
     switch (current_sequence) { 
     case SEQ_01:
         if (current_seq_time_limit != SEQ_01_ACTIVE_TIME) {
@@ -686,10 +700,12 @@ void run_default_mode_sequence(void) {
         digitalWrite(G1_RELAY, HIGH);
         digitalWrite(R3_RELAY, HIGH);
         
+        
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
-            current_event_time_last = millis();
+            current_seq_time_last = millis();
             previous_sequence = current_sequence;
             current_sequence = SEQ_02;
+            turn_off_relays(1);
         }
         break;
 
@@ -703,9 +719,10 @@ void run_default_mode_sequence(void) {
         digitalWrite(G3_RELAY, HIGH);
 
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
-            current_event_time_last = millis();
+            current_seq_time_last = millis();
             previous_sequence = current_sequence;
             current_sequence = SEQ_03;
+            turn_off_relays(1);
         }
         break;
     
@@ -719,31 +736,79 @@ void run_default_mode_sequence(void) {
         digitalWrite(G3_RELAY, HIGH);
         
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
-            current_event_time_last = millis();
+            current_seq_time_last = millis();
             previous_sequence = current_sequence;
             current_sequence = SEQ_01;
+            turn_off_relays(1);
         }
         break;
     }
 }
 
 
-/// @todo reset the counter based on time
-void reset_counter(void) {
-
+void reset_counter(byte *h, byte *ph) {
+    if (*ph != *h) {
+        switch (*h) {
+            case 7 : 
+            case 8 :
+            case 11:
+            case 12:
+            case 16:
+            case 17:
+                break;
+            
+            default:
+                green_light_grant_counter = 0;
+        }
+    }
 }
 
 
-/// @todo setup grant limit based on time
-void setup_grant_limit(void) {
-    green_light_grant_limit = 0;
+void set_grant_limit(byte *h) {
+    switch (*h) {
+        case  6:
+            green_light_grant_limit = GREEN_GRANT_06T07;
+            break;
+        case  9:
+            green_light_grant_limit = GREEN_GRANT_09T10;
+            break;
+        case 10:
+            green_light_grant_limit = GREEN_GRANT_10T11;
+            break;
+        case 13:
+            green_light_grant_limit = GREEN_GRANT_13T14;
+            break;
+        case 14:
+            green_light_grant_limit = GREEN_GRANT_14T15;
+            break;
+        case 15:
+            green_light_grant_limit = GREEN_GRANT_15T16;
+            break;
+    }
 }
 
 
-/// @todo check the current time to set active default mode
-/// @todo merge this routine from above
-void check_time_for_mode(void) {
+void check_time_for_mode(byte *h) {
 
+    switch (*h) {
+        case  7: 
+        case  8:
+        case 11:
+        case 12:
+        case 16:
+        case 17:
+            default_mode_two = false;
+            break;
+        
+        case  6:
+        case  9:
+        case 10:
+        case 13:
+        case 14:
+        case 15:
+            default_mode_two = true;
+            break;
+    }
 }
 
 
@@ -752,6 +817,11 @@ void setup(void) {
     SPI.begin();
     Serial.begin(115200);
     
+    h24 = false;
+    Wire.begin();
+
+    // set Clock to 24-hour format
+    rtc.setClockMode(false); 
 
     current_event  = EVENT_00;
     previous_event = EVENT_00;
@@ -760,8 +830,10 @@ void setup(void) {
     is_yellow = false;
     default_mode_two = false;
     green_light_grant_counter = 0;
+    green_light_grant_limit = 0;
     
-    setup_grant_limit();
+    prev_hour = 0;
+    hour = rtc.getHour(h24, hPM);
 
     pinMode(R1_RELAY, OUTPUT);
     pinMode(Y1_RELAY, OUTPUT);
@@ -782,15 +854,25 @@ void setup(void) {
 
 void loop(void) {
     Serial.println("+++++loop::start+++++");
+    
+    if (prev_hour != hour) {
+        prev_hour = hour;
+    }
+    hour = rtc.getHour(h24, hPM);
 
     network.update();
-
+    
+    check_time_for_mode(&hour);
+    set_grant_limit(&hour);
     
     if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two) {
+        seq_run += 1;
+
         broadcast_default_mode_2();
         run_default_mode_sequence();
 
     } else {
+        seq_run = 0;
         process_sensor_data();
         process_events();
 

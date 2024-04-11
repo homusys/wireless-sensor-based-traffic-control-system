@@ -90,10 +90,10 @@ enum Events_Seq {
 #define GREEN_GRANT_06T07  15
 #define GREEN_GRANT_09T10  10
 #define GREEN_GRANT_10T11  15
-#define GREEN_GRANT_12T13  20
 #define GREEN_GRANT_13T14  15
 #define GREEN_GRANT_14T15  20
 #define GREEN_GRANT_15T16  15
+#define GREEN_GRANT_RESET   0
 
 
 #endif

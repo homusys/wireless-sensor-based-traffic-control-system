@@ -10,6 +10,8 @@
             "includePath": [
                 "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/include",
                 "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/src",
+                "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/DS3231",
+                "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/NewPing/src",
                 "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/RF24Network",
                 "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/RF24",
@@ -21,7 +23,6 @@
                 "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                 "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -29,6 +30,8 @@
                 "path": [
                     "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/include",
                     "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/src",
+                    "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/DS3231",
+                    "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/NewPing/src",
                     "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/RF24Network",
                     "d:/DOCS/Programming/embedded/traffic-lights-thesis-v2/.pio/libdeps/master/RF24",
@@ -40,7 +43,6 @@
                     "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                     "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                    "C:/Users/Carl/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
                     ""
                 ]
             },
