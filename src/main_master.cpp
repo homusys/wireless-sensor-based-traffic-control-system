@@ -48,7 +48,7 @@ int event_cooldowns[EVENT_COUNT];
 int green_light_grant_counter;
 int green_light_grant_limit;
 
-bool is_yellow, is_finished, default_mode_two;
+bool is_pre_yellow, is_post_yellow, is_finished, default_mode_two;
 
 unsigned long time_last = 0;
 
@@ -67,13 +67,17 @@ void _print_event(enum Events e) {
     case EVENT_1A: Serial.println("EVENT_1A"); break;
     case EVENT_1B: Serial.println("EVENT_1B"); break;
     case EVENT_1C: Serial.println("EVENT_1C"); break;
+    case EVENT_1D: Serial.println("EVENT_1D"); break;
     case EVENT_2A: Serial.println("EVENT_2A"); break;
     case EVENT_2B: Serial.println("EVENT_2B"); break;
     case EVENT_2C: Serial.println("EVENT_2C"); break;
+    case EVENT_2D: Serial.println("EVENT_2D"); break;
     case EVENT_3A: Serial.println("EVENT_3A"); break;
     case EVENT_3B: Serial.println("EVENT_3B"); break;
+    case EVENT_3C: Serial.println("EVENT_3C"); break;
     case EVENT_4A: Serial.println("EVENT_4A"); break;
     case EVENT_4B: Serial.println("EVENT_4B"); break;
+    case EVENT_4C: Serial.println("EVENT_4C"); break;
     case EVENT_5A: Serial.println("EVENT_5A"); break;
     case EVENT_5B: Serial.println("EVENT_5B"); break;
     case EVENT_6A: Serial.println("EVENT_6A"); break;
@@ -195,8 +199,8 @@ void process_sensor_data(void) {
 void update_current_event(enum Events e, unsigned long ct, int cdv) {
     Serial.println("update_current_event::start");
 
-    Serial.print("is_yellow: ");
-    Serial.println(is_yellow);
+    Serial.print("is_pre_yellow: ");
+    Serial.println(is_pre_yellow);
 
     _print_event(e);
     _print_event(current_event);
@@ -209,8 +213,37 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
         return;
     }
 
+
+    if (is_post_yellow) {
+        switch (current_event) {
+        case EVENT_1B:
+        case EVENT_1C:
+            current_event = EVENT_1D;
+            current_event_time_limit = EVENT_1D_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_2B:
+        case EVENT_2C:
+            current_event = EVENT_2D;
+            current_event_time_limit = EVENT_2D_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_3B:
+            current_event = EVENT_3C;
+            current_event_time_limit = EVENT_3C_ACTIVE_TIME_MS;
+            break;
+
+        case EVENT_4B:
+            current_event = EVENT_4C;
+            current_event_time_limit = EVENT_4C_ACTIVE_TIME_MS;
+            break;
+        }
+        return;
+    }
+
+
     /* If current event is a yellow light */
-    if (is_yellow) {
+    if (is_pre_yellow) {
         switch (current_event) {
         case EVENT_1A:
             if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS &&
@@ -222,7 +255,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
             else if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS) 
             {
                 current_event = EVENT_1B;
-                current_event_time_limit = EVENT_1C_ACTIVE_TIME_MS;
+                current_event_time_limit = EVENT_1B_ACTIVE_TIME_MS;
             }
             break;
 
@@ -280,7 +313,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
     }
     /* Must be a yellow event */
     else { 
-        is_yellow = true;
+        is_pre_yellow = true;
         current_event = e;
         switch (e) {
         case EVENT_1A:
@@ -423,7 +456,9 @@ void broadcast_event(void) {
 void turn_off_relays(int force) {
     if ((previous_event != current_event) || force) {
 
-        digitalWrite(LT1_RELAY, LOW);
+        digitalWrite(LTR1_RELAY, LOW);
+        digitalWrite(LTY1_RELAY, LOW);
+        digitalWrite(LTG1_RELAY, LOW);
         digitalWrite(R1_RELAY , LOW);
         digitalWrite(Y1_RELAY , LOW);
         digitalWrite(G1_RELAY , LOW);
@@ -461,15 +496,17 @@ void run_event(void) {
     switch (current_event) {
 
         case EVENT_00: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(G1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
-            is_yellow = false;
+            is_pre_yellow = false;
             decrease_cooldowns();
             break;
 
 
         case EVENT_1A: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
@@ -477,12 +514,14 @@ void run_event(void) {
 
         case EVENT_1B: 
             if (event_cooldowns[EVENT_1] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_1);
@@ -495,23 +534,36 @@ void run_event(void) {
 
         case EVENT_1C: 
             if (event_cooldowns[EVENT_1] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_1] = EVENT_COOLDOWN;
             
             force_record_sensor_data_time(SENSOR_1);
             force_record_sensor_data_time(SENSOR_7);
 
             count_green();
+            
+            break;
+        
 
+        case EVENT_1D:
+            // TURN ON Y4
+            digitalWrite(LTR1_RELAY, HIGH);
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+            delay(current_event_time_limit);
+            is_post_yellow = false;
             break;
 
 
         case EVENT_2A: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
@@ -519,12 +571,14 @@ void run_event(void) {
 
         case EVENT_2B:
             if (event_cooldowns[EVENT_2] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(G3_RELAY, HIGH);
             
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_1);
@@ -537,12 +591,14 @@ void run_event(void) {
 
         case EVENT_2C: 
             if (event_cooldowns[EVENT_2] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(G3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_2] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_1);
@@ -553,7 +609,20 @@ void run_event(void) {
             break;
 
 
+        case EVENT_2D:
+            digitalWrite(LTR1_RELAY, HIGH);
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+            delay(current_event_time_limit);
+            is_post_yellow = false;
+            break;
+
+
+
         case EVENT_3A: 
+            /// @note TL1 is not a yellow event because it is
+            ///       based on default mode 1 
+            digitalWrite(LTY1_RELAY, HIGH);
             digitalWrite(G1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
@@ -561,13 +630,14 @@ void run_event(void) {
 
         case EVENT_3B: 
             if (event_cooldowns[EVENT_3] > 0) { return; }
+            digitalWrite(LTG1_RELAY, HIGH);
             digitalWrite(G1_RELAY,  HIGH);
             digitalWrite(R3_RELAY,  HIGH);
-            digitalWrite(LT1_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_3] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_3);
@@ -576,8 +646,18 @@ void run_event(void) {
             
             break;
 
+        
+        case EVENT_3C:
+            digitalWrite(LTY1_RELAY, HIGH);
+            digitalWrite(G1_RELAY,  HIGH);
+            digitalWrite(R3_RELAY,  HIGH);
+            delay(current_event_time_limit);
+            is_post_yellow = false;
+            break;
+
 
         case EVENT_4A: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
@@ -585,12 +665,14 @@ void run_event(void) {
 
         case EVENT_4B: 
             if (event_cooldowns[EVENT_4] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
+            is_post_yellow = true;
             event_cooldowns[EVENT_4] = EVENT_COOLDOWN;
             
             force_record_sensor_data_time(SENSOR_4);
@@ -598,9 +680,20 @@ void run_event(void) {
             count_green();
 
             break;
+        
+
+        case EVENT_4C:
+            // TURN ON LT2
+            digitalWrite(LTR1_RELAY, HIGH);
+            digitalWrite(R1_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
+            delay(current_event_time_limit);
+            is_post_yellow = false;
+            break;
 
 
         case EVENT_5A: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
@@ -608,12 +701,13 @@ void run_event(void) {
 
         case EVENT_5B: 
             if (event_cooldowns[EVENT_5] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
-            is_yellow = false;
+            is_pre_yellow = false;
             event_cooldowns[EVENT_5] = EVENT_COOLDOWN;
 
             force_record_sensor_data_time(SENSOR_5);
@@ -624,20 +718,22 @@ void run_event(void) {
 
 
         case EVENT_6A: 
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
             digitalWrite(Y3_RELAY, HIGH);
             break;
 
 
-        case EVENT_6B: 
+        case EVENT_6B:  
             if (event_cooldowns[EVENT_6] > 0) { return; }
+            digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(R1_RELAY, HIGH);
             digitalWrite(R3_RELAY, HIGH);
 
 
             delay(current_event_time_limit);
             decrease_cooldowns();
-            is_yellow = false;
+            is_pre_yellow = false;
             event_cooldowns[EVENT_6] = EVENT_COOLDOWN;
             
             force_record_sensor_data_time(SENSOR_6);
@@ -827,7 +923,8 @@ void setup(void) {
     previous_event = EVENT_00;
     current_sequence  = SEQ_01;
     previous_sequence = SEQ_01;
-    is_yellow = false;
+    is_pre_yellow = false;
+    is_post_yellow = false;
     default_mode_two = false;
     green_light_grant_counter = 0;
     green_light_grant_limit = 0;
@@ -835,6 +932,9 @@ void setup(void) {
     prev_hour = 0;
     hour = rtc.getHour(h24, hPM);
 
+    pinMode(LTR1_RELAY, OUTPUT);
+    pinMode(LTY1_RELAY, OUTPUT);
+    pinMode(LTG1_RELAY, OUTPUT);
     pinMode(R1_RELAY, OUTPUT);
     pinMode(Y1_RELAY, OUTPUT);
     pinMode(G1_RELAY, OUTPUT);

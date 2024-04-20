@@ -30,7 +30,7 @@ const uint16_t board8 = 005; // slave_board ARDUINO 8
 
 const uint16_t board_master = board1; // main_board
 
-
+/// @todo Consider LTG, LTY, LTR for both BOARD MASTER AND BOARD 2
 #if defined(BOARD_MASTER) 
     int8_t current_board = board1;
 
@@ -40,15 +40,17 @@ const uint16_t board_master = board1; // main_board
     #define NRF24L01_CSN   8
     #define NRF24L01_CE    7
 
-    #define LT1_RELAY 9
+    #define LTR1_RELAY  9
+    #define LTY1_RELAY 10
+    #define LTG1_RELAY 11
 
-    #define R1_RELAY 10
-    #define Y1_RELAY 11
-    #define G1_RELAY 12
+    #define R1_RELAY 12
+    #define Y1_RELAY 14
+    #define G1_RELAY 15
 
-    #define R3_RELAY 14
-    #define Y3_RELAY 15
-    #define G3_RELAY 16
+    #define R3_RELAY 16
+    #define Y3_RELAY 17
+    #define G3_RELAY 18
 
     #define RTC_SCL  21
     #define RTC_SDA  20
@@ -57,22 +59,23 @@ const uint16_t board_master = board1; // main_board
 #elif defined(BOARD_A2)
     int8_t current_board = board2;
 
-    #define NRF24L01_MOSI 11
-    #define NRF24L01_MISO 12
-    #define NRF24L01_SCK  13
-    #define NRF24L01_CSN  10
-    #define NRF24L01_CE    9
+    #define NRF24L01_MOSI 51
+    #define NRF24L01_MISO 50
+    #define NRF24L01_SCK  52
+    #define NRF24L01_CSN   8
+    #define NRF24L01_CE    7
     
+    #define LTR2_RELAY  9
+    #define LTY2_RELAY 10
+    #define LTG2_RELAY 11
 
-    #define LT2_RELAY 8
+    #define R2_RELAY 12
+    #define Y2_RELAY 14
+    #define G2_RELAY 15
 
-    #define R2_RELAY 7
-    #define Y2_RELAY 6
-    #define G2_RELAY 5
-
-    #define R4_RELAY 4
-    #define Y4_RELAY 3
-    #define G4_RELAY 2
+    #define R4_RELAY 16
+    #define Y4_RELAY 17
+    #define G4_RELAY 18
 
 
 #elif defined(BOARD_A3)

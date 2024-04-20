@@ -72,13 +72,17 @@ void _print_event(enum Events e) {
     case EVENT_1A: Serial.println("EVENT_1A"); break;
     case EVENT_1B: Serial.println("EVENT_1B"); break;
     case EVENT_1C: Serial.println("EVENT_1C"); break;
+    case EVENT_1D: Serial.println("EVENT_1D"); break;
     case EVENT_2A: Serial.println("EVENT_2A"); break;
     case EVENT_2B: Serial.println("EVENT_2B"); break;
     case EVENT_2C: Serial.println("EVENT_2C"); break;
+    case EVENT_2D: Serial.println("EVENT_2D"); break;
     case EVENT_3A: Serial.println("EVENT_3A"); break;
     case EVENT_3B: Serial.println("EVENT_3B"); break;
+    case EVENT_3C: Serial.println("EVENT_3C"); break;
     case EVENT_4A: Serial.println("EVENT_4A"); break;
     case EVENT_4B: Serial.println("EVENT_4B"); break;
+    case EVENT_4C: Serial.println("EVENT_4C"); break;
     case EVENT_5A: Serial.println("EVENT_5A"); break;
     case EVENT_5B: Serial.println("EVENT_5B"); break;
     case EVENT_6A: Serial.println("EVENT_6A"); break;
@@ -312,7 +316,9 @@ void turn_off_relay() {
 
         #if   BOARD_A2
 
-            digitalWrite(LT2_RELAY, LOW);
+            digitalWrite(LTR2_RELAY, LOW);
+            digitalWrite(LTY2_RELAY, LOW);
+            digitalWrite(LTG2_RELAY, LOW);
             digitalWrite(R2_RELAY, LOW);
             digitalWrite(Y2_RELAY, LOW);
             digitalWrite(G2_RELAY, LOW);
@@ -351,6 +357,7 @@ void run_event(void) {
         switch (current_event) {
         case EVENT_00: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -363,6 +370,7 @@ void run_event(void) {
 
         case EVENT_1A: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -375,6 +383,7 @@ void run_event(void) {
 
         case EVENT_1B: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
@@ -387,8 +396,22 @@ void run_event(void) {
 
         case EVENT_1C: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH); 
                 digitalWrite(G4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+        
+
+        case EVENT_1D:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH); 
+                digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
@@ -399,6 +422,7 @@ void run_event(void) {
 
         case EVENT_2A: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -411,6 +435,7 @@ void run_event(void) {
 
         case EVENT_2B: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -423,6 +448,20 @@ void run_event(void) {
 
         case EVENT_2C: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+        
+
+        case EVENT_2D:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -433,8 +472,10 @@ void run_event(void) {
             break;
 
 
+
         case EVENT_3A: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -447,6 +488,20 @@ void run_event(void) {
 
         case EVENT_3B: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case EVENT_3C:  
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -459,6 +514,9 @@ void run_event(void) {
 
         case EVENT_4A: 
             #if   BOARD_A2
+                /// @note TL2 is not a yellow event because it is 
+                ///       based on default mode 1 
+                digitalWrite(LTY2_RELAY, HIGH);
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -471,9 +529,22 @@ void run_event(void) {
 
         case EVENT_4B: 
             #if   BOARD_A2
+                digitalWrite(LTG2_RELAY, HIGH);
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
-                digitalWrite(LT2_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+        
+
+        case EVENT_4C: 
+            #if   BOARD_A2
+                digitalWrite(LTY2_RELAY, HIGH);
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
@@ -484,6 +555,7 @@ void run_event(void) {
 
         case EVENT_5A: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -496,6 +568,7 @@ void run_event(void) {
 
         case EVENT_5B: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -508,6 +581,7 @@ void run_event(void) {
 
         case EVENT_6A: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
@@ -520,6 +594,7 @@ void run_event(void) {
 
         case EVENT_6B: 
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -587,7 +662,10 @@ void setup(void) {
     Serial.begin(115200);
 
     #if BOARD_A2
-    
+
+        pinMode(LTR2_RELAY, OUTPUT);
+        pinMode(LTY2_RELAY, OUTPUT);
+        pinMode(LTG2_RELAY, OUTPUT);
         pinMode(R2_RELAY, OUTPUT);
         pinMode(Y2_RELAY, OUTPUT);
         pinMode(G2_RELAY, OUTPUT);
