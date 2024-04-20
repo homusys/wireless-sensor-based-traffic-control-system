@@ -508,7 +508,7 @@ void run_event(void) {
         case EVENT_1A: 
             digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
-            digitalWrite(Y3_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
             break;
 
 
@@ -624,7 +624,7 @@ void run_event(void) {
             ///       based on default mode 1 
             digitalWrite(LTY1_RELAY, HIGH);
             digitalWrite(G1_RELAY, HIGH);
-            digitalWrite(Y3_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
             break;
 
 
@@ -659,7 +659,7 @@ void run_event(void) {
         case EVENT_4A: 
             digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
-            digitalWrite(Y3_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
             break;
 
 
@@ -695,7 +695,7 @@ void run_event(void) {
         case EVENT_5A: 
             digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
-            digitalWrite(Y3_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
             break;
 
 
@@ -720,7 +720,7 @@ void run_event(void) {
         case EVENT_6A: 
             digitalWrite(LTR1_RELAY, HIGH);
             digitalWrite(Y1_RELAY, HIGH);
-            digitalWrite(Y3_RELAY, HIGH);
+            digitalWrite(R3_RELAY, HIGH);
             break;
 
 

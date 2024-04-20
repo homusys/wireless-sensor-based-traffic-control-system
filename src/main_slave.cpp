@@ -424,7 +424,7 @@ void run_event(void) {
             #if   BOARD_A2
                 digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
-                digitalWrite(Y4_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
@@ -477,7 +477,7 @@ void run_event(void) {
             #if   BOARD_A2
                 digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
-                digitalWrite(Y4_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
@@ -557,7 +557,7 @@ void run_event(void) {
             #if   BOARD_A2
                 digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
-                digitalWrite(Y4_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
@@ -583,7 +583,7 @@ void run_event(void) {
             #if   BOARD_A2
                 digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(Y2_RELAY, HIGH);
-                digitalWrite(Y4_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
