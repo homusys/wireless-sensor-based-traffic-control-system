@@ -30,7 +30,6 @@ const uint16_t board8 = 005; // slave_board ARDUINO 8
 
 const uint16_t board_master = board1; // main_board
 
-/// @todo Consider LTG, LTY, LTR for both BOARD MASTER AND BOARD 2
 #if defined(BOARD_MASTER) 
     int8_t current_board = board1;
 
