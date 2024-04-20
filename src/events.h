@@ -88,19 +88,29 @@ enum Events {
 /* ++++++++++++ EVENT SEQUENCE ENUM DEFINITION ++++++++++++ */
 /// @brief During default mode 2.1 an event sequence happens
 enum Events_Seq {
-    SEQ_01,
-    SEQ_02,
-    SEQ_03,
-    SEQ_04,
-    SEQ_05
+    SEQ_01A,
+    SEQ_01B,
+    SEQ_02A,
+    SEQ_02B,
+    SEQ_03A,
+    SEQ_03B,
+    SEQ_04A,
+    SEQ_04B,
+    SEQ_05A,
+    SEQ_05B
 };
 
 
-#define SEQ_01_ACTIVE_TIME 116660
-#define SEQ_02_ACTIVE_TIME 3220
-#define SEQ_03_ACTIVE_TIME 9360
-#define SEQ_04_ACTIVE_TIME 13600
-#define SEQ_05_ACTIVE_TIME 7160
+#define SEQ_01A_ACTIVE_TIME 116660
+#define SEQ_01B_ACTIVE_TIME 3000
+#define SEQ_02A_ACTIVE_TIME 3220
+#define SEQ_02B_ACTIVE_TIME 3000
+#define SEQ_03A_ACTIVE_TIME 9360
+#define SEQ_03B_ACTIVE_TIME 3000
+#define SEQ_04A_ACTIVE_TIME 13600
+#define SEQ_04B_ACTIVE_TIME 3000
+#define SEQ_05A_ACTIVE_TIME 7160
+#define SEQ_05B_ACTIVE_TIME 3000
 
 
 /* ++++++++++++ DEFAULT MODE 2 CONSTANTS ++++++++++++ */

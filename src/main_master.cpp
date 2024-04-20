@@ -31,8 +31,9 @@
 DS3231 rtc;
 bool h24 = false;
 bool hPM = false;
+bool is_reset = false;
 int seq_run = 0;
-byte hour, prev_hour;
+byte hour, prev_hour, next_hour;
 
 RF24 radio(NRF24L01_CE, NRF24L01_CSN);
 RF24Network network(radio);
@@ -788,11 +789,11 @@ void run_default_mode_sequence(void) {
     Serial.println(millis() - current_seq_time_last);
 
     switch (current_sequence) { 
-    case SEQ_01:
-        if (current_seq_time_limit != SEQ_01_ACTIVE_TIME) {
-            current_seq_time_limit = SEQ_01_ACTIVE_TIME; 
+    case SEQ_01A:
+        if (current_seq_time_limit != SEQ_01A_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_01A_ACTIVE_TIME; 
         }
-
+        digitalWrite(LTR1_RELAY, HIGH);
         digitalWrite(G1_RELAY, HIGH);
         digitalWrite(R3_RELAY, HIGH);
         
@@ -800,41 +801,170 @@ void run_default_mode_sequence(void) {
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
             current_seq_time_last = millis();
             previous_sequence = current_sequence;
-            current_sequence = SEQ_02;
+            current_sequence = SEQ_01B;
+            turn_off_relays(1);
+        }
+        break;
+
+
+    case SEQ_01B:
+        if (current_seq_time_limit != SEQ_01B_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_01B_ACTIVE_TIME; 
+        }
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(G1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_02A;
             turn_off_relays(1);
         }
         break;
 
     
-    case SEQ_02:
-        if (current_seq_time_limit != SEQ_02_ACTIVE_TIME) {
-            current_seq_time_limit = SEQ_02_ACTIVE_TIME; 
+    case SEQ_02A:
+        if (current_seq_time_limit != SEQ_02A_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_02A_ACTIVE_TIME; 
         }
 
-        digitalWrite(R1_RELAY, HIGH);
-        digitalWrite(G3_RELAY, HIGH);
+        digitalWrite(LTG1_RELAY, HIGH);
+        digitalWrite(G1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
 
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
             current_seq_time_last = millis();
             previous_sequence = current_sequence;
-            current_sequence = SEQ_03;
+            current_sequence = SEQ_02B;
+            turn_off_relays(1);
+        }
+        break;
+
+    
+    case SEQ_02B:
+        if (current_seq_time_limit != SEQ_02B_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_02B_ACTIVE_TIME; 
+        }
+
+        digitalWrite(LTY1_RELAY, HIGH);
+        digitalWrite(Y1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_03A;
             turn_off_relays(1);
         }
         break;
     
     
-    case SEQ_03:
-        if (current_seq_time_limit != SEQ_03_ACTIVE_TIME) {
-            current_seq_time_limit = SEQ_03_ACTIVE_TIME; 
+    case SEQ_03A:
+        if (current_seq_time_limit != SEQ_03A_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_03A_ACTIVE_TIME;
         }
 
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_03B;
+            turn_off_relays(1);
+        }
+        break;
+    
+    
+    case SEQ_03B:
+        if (current_seq_time_limit != SEQ_03B_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_03B_ACTIVE_TIME;
+        }
+
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_04A;
+            turn_off_relays(1);
+        }
+        break;
+    
+    
+    case SEQ_04A:
+        if (current_seq_time_limit != SEQ_04A_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_04A_ACTIVE_TIME; 
+        }
+
+        digitalWrite(LTR1_RELAY, HIGH);
         digitalWrite(R1_RELAY, HIGH);
         digitalWrite(G3_RELAY, HIGH);
         
         if (millis() - current_seq_time_last >= current_seq_time_limit) {
             current_seq_time_last = millis();
             previous_sequence = current_sequence;
-            current_sequence = SEQ_01;
+            current_sequence = SEQ_04B;
+            turn_off_relays(1);
+        }
+        break;
+    
+    
+    case SEQ_04B:
+        if (current_seq_time_limit != SEQ_04B_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_04B_ACTIVE_TIME; 
+        }
+
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        /// @todo blink Y3 for 3 seconds
+        digitalWrite(Y3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_05A;
+            turn_off_relays(1);
+        }
+        break;
+    
+    
+    case SEQ_05A:
+        if (current_seq_time_limit != SEQ_05A_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_05A_ACTIVE_TIME; 
+        }
+
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_05B;
+            turn_off_relays(1);
+        }
+        break;
+    
+    
+    case SEQ_05B:
+        if (current_seq_time_limit != SEQ_05B_ACTIVE_TIME) {
+            current_seq_time_limit = SEQ_05B_ACTIVE_TIME; 
+        }
+
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(G3_RELAY, HIGH);
+        
+        if (millis() - current_seq_time_last >= current_seq_time_limit) {
+            current_seq_time_last = millis();
+            previous_sequence = current_sequence;
+            current_sequence = SEQ_01A;
             turn_off_relays(1);
         }
         break;
@@ -842,21 +972,25 @@ void run_default_mode_sequence(void) {
 }
 
 
-void reset_counter(byte *h, byte *ph) {
-    if (*ph != *h) {
-        switch (*h) {
-            case 7 : 
-            case 8 :
-            case 11:
-            case 12:
-            case 16:
-            case 17:
-                break;
-            
-            default:
+/**
+ * Reset the green light grant counter. This
+ * routine is expected to run every hour (when
+ * the hour variable increments.)
+*/
+void reset_counter(byte *h) {
+    switch (*h) {
+        case 7 : 
+        case 8 :
+        case 11:
+        case 12:
+        case 16:
+        case 17:
+            break;
+        
+        default:
                 green_light_grant_counter = 0;
-        }
     }
+
 }
 
 
@@ -921,8 +1055,8 @@ void setup(void) {
 
     current_event  = EVENT_00;
     previous_event = EVENT_00;
-    current_sequence  = SEQ_01;
-    previous_sequence = SEQ_01;
+    current_sequence  = SEQ_01A;
+    previous_sequence = SEQ_01A;
     is_pre_yellow = false;
     is_post_yellow = false;
     default_mode_two = false;
@@ -931,6 +1065,7 @@ void setup(void) {
     
     prev_hour = 0;
     hour = rtc.getHour(h24, hPM);
+    next_hour = hour + 1;
 
     pinMode(LTR1_RELAY, OUTPUT);
     pinMode(LTY1_RELAY, OUTPUT);
@@ -955,9 +1090,13 @@ void setup(void) {
 void loop(void) {
     Serial.println("+++++loop::start+++++");
     
+    // This if block is expected to run every hour
+    // in order to reset the green light grant counter.
     if (prev_hour != hour) {
         prev_hour = hour;
+        reset_counter(&hour);
     }
+    
     hour = rtc.getHour(h24, hPM);
 
     network.update();
@@ -981,6 +1120,9 @@ void loop(void) {
         turn_off_relays(0);
         run_event();
     }
+
+    if (next_hour <= hour)
+        next_hour = hour+1;
 
     Serial.println("-----loop::ended-----");
 }

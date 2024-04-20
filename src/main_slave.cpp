@@ -609,8 +609,9 @@ void run_event(void) {
 
     else if (seq_active) {
         switch (current_seq) {
-        case SEQ_01:
+        case SEQ_01A:
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -620,8 +621,21 @@ void run_event(void) {
             #endif
 
 
-        case SEQ_02:
+        case SEQ_01B:
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_02A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
@@ -631,11 +645,85 @@ void run_event(void) {
             #endif
 
 
-        case SEQ_03:
+        case SEQ_02B:
             #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_03A:
+            #if   BOARD_A2
+                digitalWrite(LTG2_RELAY, HIGH);
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_03B:
+            #if   BOARD_A2
+                digitalWrite(LTY2_RELAY, HIGH);
+                digitalWrite(Y2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_04A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_04B:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_05A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PG2_RELAY, HIGH);
+            #endif
+
+
+        case SEQ_05B:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(Y4_RELAY, HIGH);
+            #elif BOARD_A3
+                /// @todo blink PG1 and PG2 for 3 seconds
                 digitalWrite(PG1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
@@ -653,8 +741,8 @@ void setup(void) {
 
     previous_event = EVENT_00;
     current_event  = EVENT_00;
-    previous_seq = SEQ_01;
-    previous_seq = SEQ_01;
+    previous_seq = SEQ_01A;
+    previous_seq = SEQ_01A;
     event_active = true;
     seq_active = false;
 
