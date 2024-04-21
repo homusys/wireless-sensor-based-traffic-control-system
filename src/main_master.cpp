@@ -32,6 +32,8 @@ DS3231 rtc;
 bool h24 = false;
 bool hPM = false;
 bool is_reset = false;
+bool is_bypass = false;
+bool is_manual = false;
 int seq_run = 0;
 byte hour, prev_hour, next_hour;
 
@@ -128,72 +130,94 @@ void force_record_sensor_data_time(int sensor_index) {
 /**
  * Receive sensor data from other boards.
 */
-void process_sensor_data(void) {
-    // Serial.println("process_sensor_data::start");
+void process_network_data(void) {
+    // Serial.println("process_network_data::start");
     RF24NetworkHeader recv_h;
     DataPack recv_dp;
 
     while (network.available()) {
-        // Serial.println("process_sensor_data::available_data");
+        // Serial.println("process_network_data::available_data");
         network.read(recv_h, &recv_dp, sizeof(DataPack));
 
         
         if (recv_dp.type == SENSOR_T) {
-            // Serial.println("process_sensor_data::sensor_data_available");
+            // Serial.println("process_network_data::sensor_data_available");
+            if (is_bypass) { continue; } // ignore any sensor updates during bypass mode
 
             switch (recv_h.from_node) {
                 case board3:
-                    // Serial.println("process_sensor_data::case_3");
+                    // Serial.println("process_network_data::case_3");
                     main_sensor_states[SENSOR_5] = recv_dp.ss[SENSOR_5];
-                    record_sensor_data_time(5);
+                    record_sensor_data_time(SENSOR_5);
                     break;
 
 
                 case board4:
-                    // Serial.println("process_sensor_data::case_4");
+                    // Serial.println("process_network_data::case_4");
                     main_sensor_states[SENSOR_6] = recv_dp.ss[SENSOR_6];
-                    record_sensor_data_time(6);
+                    record_sensor_data_time(SENSOR_6);
                     break;
 
 
                 case board5:
-                    // Serial.println("process_sensor_data::case_5");
+                    // Serial.println("process_network_data::case_5");
                     main_sensor_states[SENSOR_1] = recv_dp.ss[SENSOR_1];
                     main_sensor_states[SENSOR_3] = recv_dp.ss[SENSOR_3];
                     main_sensor_states[SENSOR_7] = recv_dp.ss[SENSOR_7];
-                    record_sensor_data_time(1);
-                    record_sensor_data_time(3);
-                    record_sensor_data_time(7);
+                    record_sensor_data_time(SENSOR_1);
+                    record_sensor_data_time(SENSOR_3);
+                    record_sensor_data_time(SENSOR_7);
                     break;
 
 
                 case board6:
-                    // Serial.println("process_sensor_data::case_6");
+                    // Serial.println("process_network_data::case_6");
                     main_sensor_states[SENSOR_2] = recv_dp.ss[SENSOR_2];
                     main_sensor_states[SENSOR_4] = recv_dp.ss[SENSOR_4];
                     main_sensor_states[SENSOR_8] = recv_dp.ss[SENSOR_8];
-                    record_sensor_data_time(2);
-                    record_sensor_data_time(4);
-                    record_sensor_data_time(8);
+                    record_sensor_data_time(SENSOR_2);
+                    record_sensor_data_time(SENSOR_4);
+                    record_sensor_data_time(SENSOR_8);
                     break;
 
                 case board7:
-                    Serial.println("process_sensor_data::case_7");
-                    Serial.println("process_sensor_data::invalid_case");
+                    Serial.println("process_network_data::case_7");
+                    Serial.println("process_network_data::invalid_case");
                     break;
 
 
                 case board8:
                     case 8: // ARDUINO BOARD 8 SENSOR 8
-                    Serial.println("process_sensor_data::case_8");
-                    Serial.println("process_sensor_data::invalid_case");
+                    Serial.println("process_network_data::case_8");
+                    Serial.println("process_network_data::invalid_case");
                     break;
+            }
+        }
+        else if (recv_dp.type == CONTR_T) {
+            switch (recv_dp.ctrl) {
+            case NOCONTROL:
+                is_bypass = false;
+                is_manual = false;
+                break;
+
+            case BYPASS:
+                is_bypass = true;
+                is_manual = false;
+                for (size_t sensor_index=0; sensor_index<SENSOR_COUNT; ++sensor_index) {
+                    main_sensor_states[sensor_index] = recv_dp.ss[sensor_index];
+                    record_sensor_data_time(sensor_index);
+                }
+                break;
+            case MANUAL:
+                is_bypass = false;
+                is_manual = true;
+                break;
             }
         }
     }
 
     reset_sensor_data_times();
-    // Serial.println("process_sensor_data::finish");
+    // Serial.println("process_network_data::finish");
 }
 
 /// @brief updates the current event and the event array
@@ -1100,11 +1124,23 @@ void loop(void) {
     hour = rtc.getHour(h24, hPM);
 
     network.update();
+    process_network_data();
     
     check_time_for_mode(&hour);
     set_grant_limit(&hour);
     
-    if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two) {
+
+    /// MANUAL MODE
+    if (is_manual) {
+        
+        // broadcast_manual_mode();
+
+        goto manual;
+    }
+    
+
+
+    if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two && !is_bypass) {
         seq_run += 1;
 
         broadcast_default_mode_2();
@@ -1112,7 +1148,6 @@ void loop(void) {
 
     } else {
         seq_run = 0;
-        process_sensor_data();
         process_events();
 
         // run sequence
@@ -1120,6 +1155,8 @@ void loop(void) {
         turn_off_relays(0);
         run_event();
     }
+
+    manual:
 
     if (next_hour <= hour)
         next_hour = hour+1;
