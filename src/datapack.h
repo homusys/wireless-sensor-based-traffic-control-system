@@ -14,13 +14,15 @@
 
 #include "events.h"
 #include "sensor.h"
+#include "control.h"
 #include "inttypes.h"
 
 
 enum DataPackType {
     EVENT_T,
     SEQ_T,
-    SENSOR_T
+    SENSOR_T,
+    CONTR_T
 };
 
 
@@ -30,7 +32,8 @@ struct DataPack {
     enum Events event;                       // event
     bool event_active;                       // event
     enum Events_Seq seq;                     // event sequence (default mode 2)
-    bool seq_active;                     // event sequence (default mode 2)
+    bool seq_active;                         // event sequence (default mode 2)
+    enum ControlMode ctrl;
 };
 
 #endif
