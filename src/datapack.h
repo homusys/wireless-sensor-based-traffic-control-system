@@ -21,6 +21,7 @@
 enum DataPackType {
     EVENT_T,
     SEQ_T,
+    MAN_T,
     SENSOR_T,
     CONTR_T
 };
@@ -34,6 +35,8 @@ struct DataPack {
     enum Events_Seq seq;                     // event sequence (default mode 2)
     bool seq_active;                         // event sequence (default mode 2)
     enum ControlMode ctrl;
+    enum Events_Man man;
+    bool man_active;
 };
 
 #endif

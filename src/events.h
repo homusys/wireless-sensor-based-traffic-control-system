@@ -122,4 +122,17 @@ enum Events_Seq {
 #define GREEN_GRANT_15T16  186
 #define GREEN_GRANT_RESET   00
 
+
+/* ++++++++++++ EVENT MANUAL SCENARIOS ENUM DEFINITION ++++++++++++ */
+/// @brief Scenario constants specific to manual mode. 
+enum Events_Man {
+    SCENE_M1,
+    SCENE_M2,
+    SCENE_M3,
+    SCENE_M4,
+    SCENE_M5,
+    SCENE_M6,
+    SCENE_MY
+};
+
 #endif

@@ -28,6 +28,8 @@ const uint16_t board6 = 013; // slave_board ARDUINO 6
 const uint16_t board7 = 004; // slave_board ARDUINO 7
 const uint16_t board8 = 005; // slave_board ARDUINO 8
 
+const uint16_t board9 = 011; // controller_board
+
 const uint16_t board_master = board1; // main_board
 
 #if defined(BOARD_MASTER) 
@@ -56,6 +58,8 @@ const uint16_t board_master = board1; // main_board
 
 
 #elif defined(BOARD_A2)
+    /// @todo board 2 is a regular arduino thus map everything to
+    ///       regular arduino 
     int8_t current_board = board2;
 
     #define NRF24L01_MOSI 51
@@ -186,6 +190,33 @@ const uint16_t board_master = board1; // main_board
     #define MAX_DIST 450
     NewPing sonar(TRIG_PIN, ECHO_PIN, MAX_DIST);
 
+#elif defined(BOARD_CONTROL)
+    int8_t current_board = board9;
+
+    #define NRF24L01_MOSI 51
+    #define NRF24L01_MISO 50
+    #define NRF24L01_SCK  52
+    #define NRF24L01_CSN   8
+    #define NRF24L01_CE    7
+    
+
+    /// @todo replace pins with proper pins
+    #define B1_PIN  1
+    #define B2_PIN  2
+    #define B3_PIN  3
+    #define B4_PIN  4
+    #define B5_PIN  5
+    #define B6_PIN  6
+    #define B7_PIN  7
+    #define B8_PIN  8
+
+    #define M1_PIN  9 
+    #define M2_PIN 10
+    #define M3_PIN 11
+    #define M4_PIN 12
+    #define M5_PIN 13
+    #define M6_PIN 14
+    #define M7_PIN 15 // SWITCH
 
 #endif
 
