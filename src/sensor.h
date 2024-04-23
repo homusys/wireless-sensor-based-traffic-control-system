@@ -30,6 +30,22 @@
 #define SENSOR_7 6
 #define SENSOR_8 7
 
+#define S1_PRE_ACTIVE_MS  7000
+#define S2_PRE_ACTIVE_MS  7000
+#define S3_PRE_ACTIVE_MS  5000
+#define S4_PRE_ACTIVE_MS  5000
+#define S5_PRE_ACTIVE_MS 12000
+#define S6_PRE_ACTIVE_MS 12000
+
+#define S1_ACTIVE_MS 10000
+#define S2_ACTIVE_MS 10000
+#define S3_ACTIVE_MS  8000
+#define S4_ACTIVE_MS  8000
+#define S5_ACTIVE_MS 15000
+#define S6_ACTIVE_MS 15000
+#define S7_ACTIVE_MS 15000 // for both s1 and s7
+#define S8_ACTIVE_MS 15000 // for both s2 and s8
+
 
 enum SensorState {
     INACTIVE,
