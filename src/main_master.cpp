@@ -248,6 +248,12 @@ void process_network_data(void) {
     // Serial.println("process_network_data::finish");
 }
 
+
+bool check_sensor_time(unsigned long target_time, unsigned long ct, unsigned long st) {
+    return (ct - st) >= target_time;
+}
+
+
 /// @brief updates the current event and the event array
 void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
@@ -292,13 +298,13 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
     if (is_pre_yellow) {
         switch (current_event) {
         case EVENT_1A:
-            if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS &&
-                ct - sensor_times[SENSOR_7] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S7_ACTIVE_MS, ct, sensor_times[SENSOR_1]) &&
+                check_sensor_time(S1_ACTIVE_MS, ct, sensor_times[SENSOR_7]))
             {
                 current_event = EVENT_1C;
                 current_event_time_limit = EVENT_1C_ACTIVE_TIME_MS;
             }
-            else if (ct - sensor_times[SENSOR_1] >= ACTIVE_SENSOR_TIME_MS) 
+            else if (check_sensor_time(S1_ACTIVE_MS, ct, sensor_times[SENSOR_1]))
             {
                 current_event = EVENT_1B;
                 current_event_time_limit = EVENT_1B_ACTIVE_TIME_MS;
@@ -307,13 +313,13 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
             
         case EVENT_2A:
-            if (ct - sensor_times[SENSOR_2] >= ACTIVE_SENSOR_TIME_MS &&
-                ct - sensor_times[SENSOR_8] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S8_ACTIVE_MS, ct, sensor_times[SENSOR_2]) &&
+                check_sensor_time(S8_ACTIVE_MS, ct, sensor_times[SENSOR_8])) 
             {
                 current_event = EVENT_2C;
                 current_event_time_limit = EVENT_2C_ACTIVE_TIME_MS;
             }
-            else if (ct - sensor_times[SENSOR_2] >= ACTIVE_SENSOR_TIME_MS)
+            else if (check_sensor_time(S2_ACTIVE_MS, ct, sensor_times[SENSOR_2]))
             {
                 current_event = EVENT_2B;
                 current_event_time_limit = EVENT_2B_ACTIVE_TIME_MS;
@@ -322,7 +328,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
 
         case EVENT_3A:
-            if (ct - sensor_times[SENSOR_3] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S3_ACTIVE_MS, ct, sensor_times[SENSOR_3]))
             {
                 current_event = EVENT_3B;
                 current_event_time_limit = EVENT_3B_ACTIVE_TIME_MS;
@@ -331,7 +337,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
 
         case EVENT_4A:
-            if (ct - sensor_times[SENSOR_4] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S4_ACTIVE_MS, ct, sensor_times[SENSOR_4]))
             {
                 current_event = EVENT_4B;
                 current_event_time_limit = EVENT_4B_ACTIVE_TIME_MS;
@@ -340,7 +346,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
 
         case EVENT_5A:
-            if (ct - sensor_times[SENSOR_5] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S5_ACTIVE_MS, ct, sensor_times[SENSOR_5])) 
             {
                 current_event = EVENT_5B;
                 current_event_time_limit = EVENT_5B_ACTIVE_TIME_MS;
@@ -349,7 +355,7 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
             
         case EVENT_6A:
-            if (ct - sensor_times[SENSOR_6] >= ACTIVE_SENSOR_TIME_MS) 
+            if (check_sensor_time(S6_ACTIVE_MS, ct, sensor_times[SENSOR_6]))
             {
                 current_event = EVENT_6B;
                 current_event_time_limit = EVENT_6B_ACTIVE_TIME_MS;
@@ -392,59 +398,62 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
 
 /// @brief queue events considering sensor time conditions
 void process_events(void) {
-    // Serial.println("process_events::start");
+    unsigned long pre_active = 0;
     unsigned long current_time = millis();
     bool no_active = true;
 
+
     for (size_t i=0; i<SENSOR_COUNT-2; ++i) { /// don't include sensor 7 and 8 on iteration.
-        // Serial.print("process_events::sensor_index_");
-        
-
-
-        if (current_time - sensor_times[i] >= PRE_ACTIVE_SENSOR_TIME_MS) {
-            // Serial.println("check_sensors::case_ok");
-            no_active = false; /// there is an active sensor
-
-            switch (i) {
-            case SENSOR_1:
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_1");
-                // if (event_cooldowns[EVENT_1] != 0) { continue; }
+        switch (i) {
+        case SENSOR_1:
+            pre_active = S1_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_1])) {
+                no_active = false; /// there is an active sensor
                 update_current_event(EVENT_1A, current_time, event_cooldowns[EVENT_1]);
-                break;
-
-            case SENSOR_2: 
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_2");
-                // if (event_cooldowns[EVENT_2] != 0) { continue; }
-                update_current_event(EVENT_2A, current_time, event_cooldowns[EVENT_2]); 
-                break;
-                
-            case SENSOR_3: 
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_3");
-                // if (event_cooldowns[EVENT_3] != 0) { continue; }
-                update_current_event(EVENT_3A, current_time, event_cooldowns[EVENT_3]); 
-                break;
-
-            case SENSOR_4: 
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_4");
-                // if (event_cooldowns[EVENT_4] != 0) { continue; }
-                update_current_event(EVENT_4A, current_time, event_cooldowns[EVENT_4]); 
-                break;
-
-            case SENSOR_5: 
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_5");
-                // if (event_cooldowns[EVENT_5] != 0) { Serial.println("---- ON COOLDOWN ----"); continue; }
-                update_current_event(EVENT_5A, current_time, event_cooldowns[EVENT_5]); 
-                break;
-
-            case SENSOR_6: 
-                // Serial.println("check_sensors::case_solo_pre_active_sensor_6");
-                // if (event_cooldowns[EVENT_6] != 0) { continue; }
-                update_current_event(EVENT_6A, current_time, event_cooldowns[EVENT_6]); 
-                break;
             }
+            break;
+
+        case SENSOR_2: 
+            pre_active = S2_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_2])) {
+                no_active = false; /// there is an active sensor
+                update_current_event(EVENT_2A, current_time, event_cooldowns[EVENT_2]); 
+            } 
+            break;
+            
+        case SENSOR_3: 
+            pre_active = S3_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_3])) {
+                no_active = false; /// there is an active sensor
+                update_current_event(EVENT_3A, current_time, event_cooldowns[EVENT_3]); 
+            } 
+            break;
+
+        case SENSOR_4: 
+            pre_active = S4_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_4])) {
+                no_active = false; /// there is an active sensor
+                update_current_event(EVENT_4A, current_time, event_cooldowns[EVENT_4]); 
+            } 
+            break;
+
+        case SENSOR_5: 
+            pre_active = S5_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_5])) {
+                no_active = false; /// there is an active sensor
+                update_current_event(EVENT_5A, current_time, event_cooldowns[EVENT_5]); 
+            } 
+            break;
+
+        case SENSOR_6: 
+            pre_active = S6_PRE_ACTIVE_MS;
+            if (check_sensor_time(pre_active, current_time, sensor_times[SENSOR_6])) {
+                no_active = false; /// there is an active sensor
+                update_current_event(EVENT_6A, current_time, event_cooldowns[EVENT_6]);
+            } 
+            break;
         }
     }
-
 
     /* Go back to default states */
     if (no_active) {
