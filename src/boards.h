@@ -62,23 +62,23 @@ const uint16_t board_master = board1; // main_board
     ///       regular arduino 
     int8_t current_board = board2;
 
-    #define NRF24L01_MOSI 51
-    #define NRF24L01_MISO 50
-    #define NRF24L01_SCK  52
-    #define NRF24L01_CSN   8
-    #define NRF24L01_CE    7
+    #define NRF24L01_MOSI 11
+    #define NRF24L01_MISO 12
+    #define NRF24L01_SCK  13
+    #define NRF24L01_CSN  10
+    #define NRF24L01_CE    9
     
-    #define LTR2_RELAY  9
-    #define LTY2_RELAY 10
-    #define LTG2_RELAY 11
+    #define LTR2_RELAY A2
+    #define LTY2_RELAY A1
+    #define LTG2_RELAY A0
 
-    #define R2_RELAY 12
-    #define Y2_RELAY 14
-    #define G2_RELAY 15
+    #define R2_RELAY 4
+    #define Y2_RELAY 3
+    #define G2_RELAY 2
 
-    #define R4_RELAY 16
-    #define Y4_RELAY 17
-    #define G4_RELAY 18
+    #define R4_RELAY 7
+    #define Y4_RELAY 6
+    #define G4_RELAY 5
 
 
 #elif defined(BOARD_A3)
@@ -201,23 +201,32 @@ const uint16_t board_master = board1; // main_board
     
 
     /// @todo replace pins with proper pins
-    #define B1_PIN  1
-    #define B2_PIN  2
-    #define B3_PIN  3
-    #define B4_PIN  4
-    #define B5_PIN  5
-    #define B6_PIN  6
-    #define B7_PIN  7
-    #define B8_PIN  8
+    #define B1_PIN  4
+    #define B2_PIN  5
+    #define B3_PIN  6
+    #define B4_PIN  7
+    #define B5_PIN  8
+    #define B6_PIN  9
+    #define B7_PIN 10
+    #define B8_PIN 11
 
-    #define M1_PIN  9 
-    #define M2_PIN 10
-    #define M3_PIN 11
-    #define M4_PIN 12
-    #define M5_PIN 13
-    #define M6_PIN 14
-    #define M7_PIN 15 // SWITCH
+    #define M1_PIN 14 
+    #define M2_PIN 15
+    #define M3_PIN 16
+    #define M4_PIN 17
+    #define M5_PIN 18
+    #define M6_PIN 19
+    #define M7_PIN 20 // Sequence trigger
+    #define M8_PIN 21 // Switch
 
+    #define M1_LED 22
+    #define M2_LED 23
+    #define M3_LED 24
+    #define M4_LED 25
+    #define M5_LED 26
+    #define M6_LED 27
+    #define M7_LED 28
+    #define M8_LED 29
 #endif
 
 
