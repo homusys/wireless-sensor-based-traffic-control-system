@@ -64,9 +64,7 @@ bool is_switching = false;
 
 
 void count_green(void) {
-    if (default_mode_two) {
-        green_light_grant_counter += 1;
-    }
+    green_light_grant_counter += 1;    
 }
 
 
@@ -133,13 +131,11 @@ void reset_sensor_data_times(void) {
  * @param sensor_index the the id of the sensor.
 */
 void record_sensor_data_time(int sensor_index) {
-    Serial.println("record_sensor_data_times::start");
     if ((sensor_previous_states[sensor_index] != main_sensor_states[sensor_index] ) &&
          main_sensor_states[sensor_index] != INACTIVE) 
     {
         sensor_times[sensor_index] = millis();
     }
-    Serial.println("record_sensor_data_times::finish");
 }
 
 
@@ -254,13 +250,6 @@ void process_network_data(void) {
 
 /// @brief updates the current event and the event array
 void update_current_event(enum Events e, unsigned long ct, int cdv) {
-    Serial.println("update_current_event::start");
-
-    Serial.print("is_pre_yellow: ");
-    Serial.println(is_pre_yellow);
-
-    _print_event(e);
-    _print_event(current_event);
 
     previous_event = current_event;
 
@@ -398,61 +387,57 @@ void update_current_event(enum Events e, unsigned long ct, int cdv) {
             break;
         }
     }
-    Serial.println("update_current_event::finish");
 }
 
 
 /// @brief queue events considering sensor time conditions
 void process_events(void) {
-    Serial.println("process_events::start");
+    // Serial.println("process_events::start");
     unsigned long current_time = millis();
     bool no_active = true;
 
-    _print_event(current_event);
-
     for (size_t i=0; i<SENSOR_COUNT-2; ++i) { /// don't include sensor 7 and 8 on iteration.
-        Serial.print("process_events::sensor_index_");
-        Serial.println(i);
+        // Serial.print("process_events::sensor_index_");
+        
 
 
         if (current_time - sensor_times[i] >= PRE_ACTIVE_SENSOR_TIME_MS) {
             // Serial.println("check_sensors::case_ok");
-            Serial.println(current_time - sensor_times[i]);
             no_active = false; /// there is an active sensor
 
             switch (i) {
             case SENSOR_1:
-                Serial.println("check_sensors::case_solo_pre_active_sensor_1");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_1");
                 // if (event_cooldowns[EVENT_1] != 0) { continue; }
                 update_current_event(EVENT_1A, current_time, event_cooldowns[EVENT_1]);
                 break;
 
             case SENSOR_2: 
-                Serial.println("check_sensors::case_solo_pre_active_sensor_2");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_2");
                 // if (event_cooldowns[EVENT_2] != 0) { continue; }
                 update_current_event(EVENT_2A, current_time, event_cooldowns[EVENT_2]); 
                 break;
                 
             case SENSOR_3: 
-                Serial.println("check_sensors::case_solo_pre_active_sensor_3");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_3");
                 // if (event_cooldowns[EVENT_3] != 0) { continue; }
                 update_current_event(EVENT_3A, current_time, event_cooldowns[EVENT_3]); 
                 break;
 
             case SENSOR_4: 
-                Serial.println("check_sensors::case_solo_pre_active_sensor_4");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_4");
                 // if (event_cooldowns[EVENT_4] != 0) { continue; }
                 update_current_event(EVENT_4A, current_time, event_cooldowns[EVENT_4]); 
                 break;
 
             case SENSOR_5: 
-                Serial.println("check_sensors::case_solo_pre_active_sensor_5");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_5");
                 // if (event_cooldowns[EVENT_5] != 0) { Serial.println("---- ON COOLDOWN ----"); continue; }
                 update_current_event(EVENT_5A, current_time, event_cooldowns[EVENT_5]); 
                 break;
 
             case SENSOR_6: 
-                Serial.println("check_sensors::case_solo_pre_active_sensor_6");
+                // Serial.println("check_sensors::case_solo_pre_active_sensor_6");
                 // if (event_cooldowns[EVENT_6] != 0) { continue; }
                 update_current_event(EVENT_6A, current_time, event_cooldowns[EVENT_6]); 
                 break;
@@ -465,8 +450,6 @@ void process_events(void) {
     if (no_active) {
         update_current_event(EVENT_00, current_time, 0);
     }
-
-    Serial.println("process_events::finish");
     reset_sensor_data_times();
 }
 
@@ -478,9 +461,6 @@ void process_events(void) {
  * own current event.
 */
 void broadcast_event(void) {
-    Serial.println("broadcast_event");
-
-
     RF24NetworkHeader send_b2(board2);
     RF24NetworkHeader send_b3(board3);
     RF24NetworkHeader send_b4(board4);
@@ -498,42 +478,29 @@ void broadcast_event(void) {
     send_dp.man_active = false;
     
 
-    if (previous_event != current_event) {
-        network.write(send_b2, &send_dp, sizeof(DataPack));
-        network.write(send_b3, &send_dp, sizeof(DataPack));
-        network.write(send_b4, &send_dp, sizeof(DataPack));
-        network.write(send_b5, &send_dp, sizeof(DataPack));
-        network.write(send_b6, &send_dp, sizeof(DataPack));
-        network.write(send_b7, &send_dp, sizeof(DataPack));
-        network.write(send_b8, &send_dp, sizeof(DataPack));
-    }
+    // if (previous_event != current_event) {
+    network.write(send_b2, &send_dp, sizeof(DataPack));
+    network.write(send_b3, &send_dp, sizeof(DataPack));
+    network.write(send_b4, &send_dp, sizeof(DataPack));
+    network.write(send_b5, &send_dp, sizeof(DataPack));
+    network.write(send_b6, &send_dp, sizeof(DataPack));
+    network.write(send_b7, &send_dp, sizeof(DataPack));
+    network.write(send_b8, &send_dp, sizeof(DataPack));
+    // }
 }
 
 
 void decrease_cooldowns(void) {
-    Serial.println("decrease_cooldowns::start");
     for (size_t i=0; i<EVENT_COUNT; ++i) {
-        Serial.print("event_index: ");
-        Serial.print(i);
-
-        Serial.print(" | cooldown: ");
-        Serial.println(event_cooldowns[i]);
-
         if (event_cooldowns[i] > 0) {
             event_cooldowns[i] -= 1;
         }
     }
-    Serial.println("decrease_cooldowns::finish");
 }
 
 
 /// @brief run events specific to the master board.
 void run_event(void) {
-    Serial.println("run_event::start");
-
-    Serial.print("current_event_time_limit: ");
-    Serial.println(current_event_time_limit);
-
     switch (current_event) {
 
         case EVENT_00: 
@@ -783,14 +750,11 @@ void run_event(void) {
 
             break;
     }
-    Serial.println("run_event::finish");
 }
 
 
 void broadcast_default_mode_2(void) {
-    Serial.println("broadcast_sequence");
-
-
+    Serial.println("BROADCASTING....");
     RF24NetworkHeader send_b2(board2);
     RF24NetworkHeader send_b3(board3);
     RF24NetworkHeader send_b4(board4);
@@ -808,15 +772,15 @@ void broadcast_default_mode_2(void) {
     send_dp.man_active = false;
     
 
-    if (previous_sequence != current_sequence) {
-        network.write(send_b2, &send_dp, sizeof(DataPack));
-        network.write(send_b3, &send_dp, sizeof(DataPack));
-        network.write(send_b4, &send_dp, sizeof(DataPack));
-        network.write(send_b5, &send_dp, sizeof(DataPack));
-        network.write(send_b6, &send_dp, sizeof(DataPack));
-        network.write(send_b7, &send_dp, sizeof(DataPack));
-        network.write(send_b8, &send_dp, sizeof(DataPack));
-    }
+    // if (previous_sequence != current_sequence) {
+    network.write(send_b2, &send_dp, sizeof(DataPack));
+    network.write(send_b3, &send_dp, sizeof(DataPack));
+    network.write(send_b4, &send_dp, sizeof(DataPack));
+    network.write(send_b5, &send_dp, sizeof(DataPack));
+    network.write(send_b6, &send_dp, sizeof(DataPack));
+    network.write(send_b7, &send_dp, sizeof(DataPack));
+    network.write(send_b8, &send_dp, sizeof(DataPack));
+    // }
 }
 
 
@@ -826,8 +790,6 @@ void run_default_mode_sequence(void) {
     if (seq_run == 1) {
         current_seq_time_last = millis();
     }
-
-    Serial.println(millis() - current_seq_time_last);
 
     switch (current_sequence) { 
     case SEQ_01A:
@@ -1147,15 +1109,15 @@ void run_manual_blink_mode_scenarios(enum Events_Man event) {
         send_dp.man_active = true;
         send_dp.blink = blink;
 
-        if (pe != ce) {
-            network.write(send_b2, &send_dp, sizeof(DataPack));
-            network.write(send_b3, &send_dp, sizeof(DataPack));
-            network.write(send_b4, &send_dp, sizeof(DataPack));
-            network.write(send_b5, &send_dp, sizeof(DataPack));
-            network.write(send_b6, &send_dp, sizeof(DataPack));
-            network.write(send_b7, &send_dp, sizeof(DataPack));
-            network.write(send_b8, &send_dp, sizeof(DataPack));
+        network.write(send_b2, &send_dp, sizeof(DataPack));
+        network.write(send_b3, &send_dp, sizeof(DataPack));
+        network.write(send_b4, &send_dp, sizeof(DataPack));
+        network.write(send_b5, &send_dp, sizeof(DataPack));
+        network.write(send_b6, &send_dp, sizeof(DataPack));
+        network.write(send_b7, &send_dp, sizeof(DataPack));
+        network.write(send_b8, &send_dp, sizeof(DataPack));
 
+        if (pe != ce) {
             digitalWrite(LTR1_RELAY, LOW);
             digitalWrite(LTY1_RELAY, LOW);
             digitalWrite(LTG1_RELAY, LOW);
@@ -1396,7 +1358,13 @@ void loop(void) {
     invalid_manual:
 
     if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two && !is_bypass) {
-        seq_run += 1;
+        
+        if (seq_run <= 2) {
+            seq_run += 1;
+        }
+        
+        Serial.print("current_seq: ");
+        Serial.println(current_sequence);
 
         broadcast_default_mode_2();
         run_default_mode_sequence();
@@ -1409,6 +1377,8 @@ void loop(void) {
         broadcast_event();
         turn_off_relays(0);
         run_event();
+        Serial.print("green_light_grant_counter: ");
+        Serial.println(green_light_grant_counter);
     }
 
     manual:
