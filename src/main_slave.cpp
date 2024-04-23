@@ -31,7 +31,10 @@ RF24Network network(radio);
 
 enum Events previous_event, current_event;
 enum Events_Seq previous_seq, current_seq;
-bool event_active, seq_active;
+enum Events_Man previous_manual, current_manual;
+bool event_active, seq_active, man_active;
+
+short blink = 0;
 
 // previous sensor_states
 #if BOARD_A3 
@@ -280,6 +283,15 @@ void process_sequence(enum Events_Seq *s, bool *sa) {
 }
 
 
+void process_manual(enum Events_Man *m, bool *ma) {
+    current_manual = *m;
+
+    if (man_active != *ma) {
+        man_active = *ma;
+    }
+}
+
+
 void observe_events(void) {
     Serial.println("observe_events::start");
     RF24NetworkHeader recv_h;
@@ -301,6 +313,10 @@ void observe_events(void) {
         }
         else if(recv_dp.type == SEQ_T) {
             process_sequence(&recv_dp.seq, &recv_dp.seq_active);
+        }
+        else if (recv_dp.type == MAN_T) {
+            process_manual(&recv_dp.man, &recv_dp.man_active);
+            blink = recv_dp.blink;
         }
 
     }
@@ -731,6 +747,232 @@ void run_event(void) {
         }
 
     }
+
+
+    else if (man_active) {
+        switch (current_manual) {
+        case SCENE_M1A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case SCENE_M1B:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(Y2_RELAY, LOW);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(Y2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            break;
+
+
+        case SCENE_M2A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case SCENE_M2B:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            break;
+
+
+        case SCENE_M3A:
+            #if   BOARD_A2
+                digitalWrite(LTG2_RELAY, HIGH);
+                digitalWrite(G2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case SCENE_M3B:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTY2_RELAY, LOW);
+                    digitalWrite(Y2_RELAY, LOW);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTY2_RELAY, HIGH);
+                    digitalWrite(Y2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            break;
+            
+
+
+        case SCENE_M4A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(R4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PR1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PR2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case SCENE_M4B:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(R4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PR1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PR2_RELAY, HIGH);
+                #endif
+            }
+            break;
+
+
+        case SCENE_M5A:
+            #if   BOARD_A2
+                digitalWrite(LTR2_RELAY, HIGH);
+                digitalWrite(R2_RELAY, HIGH);
+                digitalWrite(G4_RELAY, HIGH);
+            #elif BOARD_A3
+                digitalWrite(PG1_RELAY, HIGH);
+            #elif BOARD_A4
+                digitalWrite(PG2_RELAY, HIGH);
+            #endif
+            break;
+
+
+        case SCENE_M5B:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(Y4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PG1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PG2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(R2_RELAY, HIGH);
+                    digitalWrite(Y4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PG1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PG2_RELAY, HIGH);
+                #endif
+            }
+            break;
+
+
+        case SCENE_M6A:
+            if (blink % 2 == 0) {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(Y2_RELAY, LOW);
+                    digitalWrite(Y4_RELAY, LOW);
+                #elif BOARD_A3
+                    digitalWrite(PG1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PG2_RELAY, HIGH);
+                #endif
+            }
+            else {
+                #if   BOARD_A2
+                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(Y2_RELAY, HIGH);
+                    digitalWrite(Y4_RELAY, HIGH);
+                #elif BOARD_A3
+                    digitalWrite(PG1_RELAY, HIGH);
+                #elif BOARD_A4
+                    digitalWrite(PG2_RELAY, HIGH);
+                #endif
+            }
+            break;
+        }
+    }
     Serial.println("run_event::start");       
 }
 
@@ -742,9 +984,13 @@ void setup(void) {
     previous_event = EVENT_00;
     current_event  = EVENT_00;
     previous_seq = SEQ_01A;
-    previous_seq = SEQ_01A;
+    current_seq  = SEQ_01A;
+    previous_manual = SCENE_M6A;
+    current_manual  = SCENE_M6A;
+
     event_active = true;
     seq_active = false;
+    man_active = false;
 
     SPI.begin();
     Serial.begin(115200);

@@ -37,6 +37,7 @@ struct DataPack {
     enum ControlMode ctrl;
     enum Events_Man man;
     bool man_active;
+    short blink;
 };
 
 #endif

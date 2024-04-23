@@ -25,6 +25,7 @@
 #include "datapack.h"
 #include "events.h"
 #include "sensor.h"
+#include "control.h"
 
 
 // ========= VARIABLES ========= //
@@ -42,9 +43,11 @@ RF24Network network(radio);
 unsigned long sensor_times[SENSOR_COUNT] = {0};
 enum SensorState sensor_previous_states[SENSOR_COUNT];
 enum SensorState main_sensor_states[SENSOR_COUNT];
+enum SensorState bypass_buttons[BM_TOTAL];
 
 enum Events previous_event, current_event;
 enum Events_Seq current_sequence, previous_sequence;
+enum Events_Man current_manual, previous_manual;
 unsigned long current_event_time_last, current_event_time_limit;
 unsigned long current_seq_time_last, current_seq_time_limit;
 int event_cooldowns[EVENT_COUNT];
@@ -55,6 +58,10 @@ bool is_pre_yellow, is_post_yellow, is_finished, default_mode_two;
 
 unsigned long time_last = 0;
 
+short blinker = 0;
+unsigned long blink_time_last, blink_time_current;
+bool is_switching = false;
+
 
 void count_green(void) {
     if (default_mode_two) {
@@ -62,6 +69,22 @@ void count_green(void) {
     }
 }
 
+
+/// @brief turn off all relay pins.
+void turn_off_relays(int force) {
+    if ((previous_event != current_event) || force) {
+
+        digitalWrite(LTR1_RELAY, LOW);
+        digitalWrite(LTY1_RELAY, LOW);
+        digitalWrite(LTG1_RELAY, LOW);
+        digitalWrite(R1_RELAY , LOW);
+        digitalWrite(Y1_RELAY , LOW);
+        digitalWrite(G1_RELAY , LOW);
+        digitalWrite(R3_RELAY , LOW);
+        digitalWrite(Y3_RELAY , LOW);
+        digitalWrite(G3_RELAY , LOW);
+    }
+}
 
 
 void _print_event(enum Events e) {
@@ -211,6 +234,15 @@ void process_network_data(void) {
             case MANUAL:
                 is_bypass = false;
                 is_manual = true;
+                is_switching = false;
+
+                if (previous_manual != recv_dp.man) {
+                    previous_manual = current_manual;
+                    is_switching = true;
+                    blinker = 0;
+                    turn_off_relays(1);
+                }
+                current_manual = recv_dp.man;
                 break;
             }
         }
@@ -463,6 +495,7 @@ void broadcast_event(void) {
     send_dp.event = current_event;
     send_dp.event_active = true;
     send_dp.seq_active = false;
+    send_dp.man_active = false;
     
 
     if (previous_event != current_event) {
@@ -473,23 +506,6 @@ void broadcast_event(void) {
         network.write(send_b6, &send_dp, sizeof(DataPack));
         network.write(send_b7, &send_dp, sizeof(DataPack));
         network.write(send_b8, &send_dp, sizeof(DataPack));
-    }
-}
-
-
-/// @brief turn off all relay pins.
-void turn_off_relays(int force) {
-    if ((previous_event != current_event) || force) {
-
-        digitalWrite(LTR1_RELAY, LOW);
-        digitalWrite(LTY1_RELAY, LOW);
-        digitalWrite(LTG1_RELAY, LOW);
-        digitalWrite(R1_RELAY , LOW);
-        digitalWrite(Y1_RELAY , LOW);
-        digitalWrite(G1_RELAY , LOW);
-        digitalWrite(R3_RELAY , LOW);
-        digitalWrite(Y3_RELAY , LOW);
-        digitalWrite(G3_RELAY , LOW);
     }
 }
 
@@ -789,9 +805,10 @@ void broadcast_default_mode_2(void) {
     send_dp.seq   = current_sequence;
     send_dp.seq_active = true;
     send_dp.event_active = false;
+    send_dp.man_active = false;
     
 
-    if (previous_event != current_event) {
+    if (previous_sequence != current_sequence) {
         network.write(send_b2, &send_dp, sizeof(DataPack));
         network.write(send_b3, &send_dp, sizeof(DataPack));
         network.write(send_b4, &send_dp, sizeof(DataPack));
@@ -1066,6 +1083,236 @@ void check_time_for_mode(byte *h) {
 }
 
 
+void broadcast_manual_mode(void) {
+    RF24NetworkHeader send_b2(board2);
+    RF24NetworkHeader send_b3(board3);
+    RF24NetworkHeader send_b4(board4);
+    RF24NetworkHeader send_b5(board5);
+    RF24NetworkHeader send_b6(board6);
+    RF24NetworkHeader send_b7(board7);
+    RF24NetworkHeader send_b8(board8);
+    
+    DataPack send_dp;
+    
+    send_dp.type  = MAN_T;
+    send_dp.man = current_manual;
+    send_dp.seq_active = false;
+    send_dp.event_active = false;
+    send_dp.man_active = true;
+    send_dp.blink = blinker;
+
+    if (previous_manual != current_manual) {
+        network.write(send_b2, &send_dp, sizeof(DataPack));
+        network.write(send_b3, &send_dp, sizeof(DataPack));
+        network.write(send_b4, &send_dp, sizeof(DataPack));
+        network.write(send_b5, &send_dp, sizeof(DataPack));
+        network.write(send_b6, &send_dp, sizeof(DataPack));
+        network.write(send_b7, &send_dp, sizeof(DataPack));
+        network.write(send_b8, &send_dp, sizeof(DataPack));
+    }
+}
+
+
+void run_manual_blink_mode_scenarios(enum Events_Man event) {
+    enum Events_Man ce = event;
+    enum Events_Man pe = event;
+
+    unsigned long prev = millis();
+    unsigned long curr = millis();
+    unsigned long const interval = 3000;
+    short blink = 0;
+
+
+    while (curr - prev >= interval) {
+
+        if (curr - prev >= BLINK_INTERVAL) {
+            blink += 1;
+        }
+
+        // broadcast
+        RF24NetworkHeader send_b2(board2);
+        RF24NetworkHeader send_b3(board3);
+        RF24NetworkHeader send_b4(board4);
+        RF24NetworkHeader send_b5(board5);
+        RF24NetworkHeader send_b6(board6);
+        RF24NetworkHeader send_b7(board7);
+        RF24NetworkHeader send_b8(board8);
+        
+        DataPack send_dp;
+        
+        send_dp.type  = MAN_T;
+        send_dp.man = ce;
+        send_dp.seq_active = false;
+        send_dp.event_active = false;
+        send_dp.man_active = true;
+        send_dp.blink = blink;
+
+        if (pe != ce) {
+            network.write(send_b2, &send_dp, sizeof(DataPack));
+            network.write(send_b3, &send_dp, sizeof(DataPack));
+            network.write(send_b4, &send_dp, sizeof(DataPack));
+            network.write(send_b5, &send_dp, sizeof(DataPack));
+            network.write(send_b6, &send_dp, sizeof(DataPack));
+            network.write(send_b7, &send_dp, sizeof(DataPack));
+            network.write(send_b8, &send_dp, sizeof(DataPack));
+
+            digitalWrite(LTR1_RELAY, LOW);
+            digitalWrite(LTY1_RELAY, LOW);
+            digitalWrite(LTG1_RELAY, LOW);
+            digitalWrite(R1_RELAY , LOW);
+            digitalWrite(Y1_RELAY , LOW);
+            digitalWrite(G1_RELAY , LOW);
+            digitalWrite(R3_RELAY , LOW);
+            digitalWrite(Y3_RELAY , LOW);
+            digitalWrite(G3_RELAY , LOW);
+        }
+
+        switch (event) {
+        case SCENE_M1B:
+            if (blink % 2 == 0) {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(Y1_RELAY, LOW);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            else {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(Y1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            break;
+
+
+        case SCENE_M2B:
+            if (blink % 2 == 0) {
+                digitalWrite(LTY1_RELAY, LOW);
+                digitalWrite(Y1_RELAY, LOW);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            else {
+                digitalWrite(LTY1_RELAY, HIGH);
+                digitalWrite(Y1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            break;
+
+
+        case SCENE_M3B:
+            if (blink % 2 == 0) {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            else {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            break;
+
+
+        case SCENE_M4B:
+            if (blink % 2 == 0) {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(Y3_RELAY, LOW);
+            }
+            else {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(Y3_RELAY, HIGH);
+            }
+            break;
+
+
+        case SCENE_M5B:
+            if (blink % 2 == 0) {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            else {
+                digitalWrite(LTR1_RELAY, HIGH);
+                digitalWrite(R1_RELAY, HIGH);
+                digitalWrite(R3_RELAY, HIGH);
+            }
+            break;
+        }
+
+        curr = millis();
+    }
+
+    is_switching = false;
+}
+
+
+void run_manual_mode_scenarios(void) {
+
+    switch (current_manual) {
+    case SCENE_M1A:
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(G1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        if (is_switching)
+            run_manual_blink_mode_scenarios(SCENE_M1B);
+        break;
+
+
+    case SCENE_M2A:
+        digitalWrite(LTG1_RELAY, HIGH);
+        digitalWrite(G1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        if (is_switching)
+            run_manual_blink_mode_scenarios(SCENE_M2B);
+        break;
+
+
+    case SCENE_M3A:
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        if (is_switching)
+            run_manual_blink_mode_scenarios(SCENE_M3B);
+        break;
+
+
+    case SCENE_M4A:
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(G3_RELAY, HIGH);
+        if (is_switching)
+            run_manual_blink_mode_scenarios(SCENE_M4B);
+        break;
+
+
+    case SCENE_M5A:
+        digitalWrite(LTR1_RELAY, HIGH);
+        digitalWrite(R1_RELAY, HIGH);
+        digitalWrite(R3_RELAY, HIGH);
+        if (is_switching)
+            run_manual_blink_mode_scenarios(SCENE_M5B);
+        break;
+
+
+    case SCENE_M6A: // Default Mode
+        if (millis() - blink_time_last >= BLINK_INTERVAL) {
+            blinker += 1;
+        }
+
+        if (blinker % 2 == 0) {
+            digitalWrite(LTR1_RELAY, LOW);
+            digitalWrite(Y1_RELAY, LOW);
+            digitalWrite(Y3_RELAY, LOW);
+        }
+        else {
+            digitalWrite(LTR1_RELAY, HIGH);
+            digitalWrite(Y1_RELAY, HIGH);
+            digitalWrite(Y3_RELAY, HIGH);
+        }
+        break;
+    }
+}
+
+
 /// @brief Starting execution routine
 void setup(void) {
     SPI.begin();
@@ -1128,17 +1375,25 @@ void loop(void) {
     
     check_time_for_mode(&hour);
     set_grant_limit(&hour);
-    
+
 
     /// MANUAL MODE
     if (is_manual) {
-        
-        // broadcast_manual_mode();
+        if (is_bypass) 
+            goto invalid_manual;
+
+        broadcast_manual_mode();
+        run_manual_mode_scenarios();
 
         goto manual;
     }
-    
+    else {
+        previous_manual = SCENE_M6A;
+        current_manual  = SCENE_M6A;
+    }
 
+
+    invalid_manual:
 
     if ((green_light_grant_counter >= green_light_grant_limit) && default_mode_two && !is_bypass) {
         seq_run += 1;

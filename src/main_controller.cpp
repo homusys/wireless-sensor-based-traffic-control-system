@@ -28,8 +28,8 @@ short curr_mbtn_state[MM_TOTAL] = {0};
 short manual_sw_state = LOW;
 
 enum SensorState bypass_sensor_states[BM_TOTAL];
-enum Events_Man previous_manual = SCENE_M6;
-enum Events_Man current_manual  = SCENE_M6;
+enum Events_Man previous_manual = SCENE_M6A;
+enum Events_Man current_manual  = SCENE_M6A;
 enum ControlMode current_mode = NOCONTROL;
 
 RF24 radio(NRF24L01_CE, NRF24L01_CSN);
@@ -38,12 +38,12 @@ RF24Network network(radio);
 
 enum Events_Man get_manual_event(short index) {
     switch (index) {
-    case 0: return SCENE_M1;
-    case 1: return SCENE_M2;
-    case 2: return SCENE_M3;
-    case 3: return SCENE_M4;
-    case 4: return SCENE_M5;
-    case 5: return SCENE_M6;
+    case 0: return SCENE_M1A;
+    case 1: return SCENE_M2A;
+    case 2: return SCENE_M3A;
+    case 3: return SCENE_M4A;
+    case 4: return SCENE_M5A;
+    case 5: return SCENE_M6A;
     }
 }
 
@@ -135,7 +135,7 @@ void loop(void) {
         is_manual = true;
     }
     else {
-        current_manual = SCENE_M6;
+        current_manual = SCENE_M6A;
     }
 
 
@@ -179,8 +179,8 @@ void loop(void) {
         // ========= DEFAULT ========= //
         if (!is_bypass) {
             /// @todo reset everything to default
-            previous_manual = SCENE_M6;
-            current_manual  = SCENE_M6;
+            previous_manual = SCENE_M6A;
+            current_manual  = SCENE_M6A;
 
             memset(curr_bbtn_state, 0x0, sizeof(curr_bbtn_state));
             memset(prev_bbtn_state, 0x0, sizeof(prev_bbtn_state));

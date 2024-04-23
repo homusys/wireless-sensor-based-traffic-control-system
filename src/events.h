@@ -126,13 +126,19 @@ enum Events_Seq {
 /* ++++++++++++ EVENT MANUAL SCENARIOS ENUM DEFINITION ++++++++++++ */
 /// @brief Scenario constants specific to manual mode. 
 enum Events_Man {
-    SCENE_M1,
-    SCENE_M2,
-    SCENE_M3,
-    SCENE_M4,
-    SCENE_M5,
-    SCENE_M6,
-    SCENE_MY
+    SCENE_M1A,
+    SCENE_M1B,
+    SCENE_M2A,
+    SCENE_M2B,
+    SCENE_M3A,
+    SCENE_M3B,
+    SCENE_M4A,
+    SCENE_M4B,
+    SCENE_M5A,
+    SCENE_M5B,
+    SCENE_M6A
 };
+
+#define BLINK_INTERVAL 500
 
 #endif
