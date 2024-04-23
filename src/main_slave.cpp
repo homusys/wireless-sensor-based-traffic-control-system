@@ -120,16 +120,12 @@ void detect_vehicle(void) {
 
     #if   BOARD_A3
         unsigned long distance = sonar.ping_cm();
-        Serial.print("detect_vehicle::distance ");
-        Serial.println(distance);
 
         if (distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S5");
             send_dp.ss[SENSOR_5] = ACTIVE;
         }
 
-        
-        Serial.println("detect_vehicle::state_changed_S5");
+    
         network.write(send_h, &send_dp, sizeof(DataPack));
         s5_previous_state = send_dp.ss[SENSOR_5];
         
@@ -139,12 +135,10 @@ void detect_vehicle(void) {
         unsigned long distance = sonar.ping_cm();
 
         if (distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S6");
             send_dp.ss[SENSOR_6] = ACTIVE;
         }
 
         if (s6_previous_state != send_dp.ss[SENSOR_6]) {
-            Serial.println("detect_vehicle::state_changed_S6");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s6_previous_state = send_dp.ss[SENSOR_6];
         }
@@ -155,25 +149,21 @@ void detect_vehicle(void) {
         unsigned long s3_distance = sonar2.ping_cm();
 
         if (s1_distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S1");
             send_dp.ss[SENSOR_1] = ACTIVE;
         }
 
         if (s3_distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S3");
             send_dp.ss[SENSOR_3] = ACTIVE;
         }
 
         send_dp.ss[SENSOR_7] = s7_received_state;
     
         if (s1_previous_state != send_dp.ss[SENSOR_1]) {
-            Serial.println("detect_vehicle::state_changed_S1");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s1_previous_state = send_dp.ss[SENSOR_1];
         } 
         
         if (s3_previous_state != send_dp.ss[SENSOR_3]) {
-            Serial.println("detect_vehicle::state_changed_S3");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s3_previous_state = send_dp.ss[SENSOR_3];
         }
@@ -184,25 +174,21 @@ void detect_vehicle(void) {
         unsigned long s4_distance = sonar2.ping_cm();
 
         if (s2_distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S2");
             send_dp.ss[SENSOR_2] = ACTIVE;
         }
 
         if (s4_distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S4");
             send_dp.ss[SENSOR_4] = ACTIVE;
         }
 
         send_dp.ss[SENSOR_8] = s8_received_state;
     
         if (s2_previous_state != send_dp.ss[SENSOR_2]) {
-            Serial.println("detect_vehicle::state_changed_S2");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s2_previous_state = send_dp.ss[SENSOR_2];
         }
 
         if (s4_previous_state != send_dp.ss[SENSOR_4]) {   
-            Serial.println("detect_vehicle::state_changed_S4");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s4_previous_state = send_dp.ss[SENSOR_4];
         }
@@ -212,12 +198,10 @@ void detect_vehicle(void) {
         unsigned long distance = sonar.ping_cm();
 
         if (distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S7");
             send_dp.ss[SENSOR_7] = ACTIVE;
         }
 
         if (s7_previous_state != send_dp.ss[SENSOR_7]) {
-            Serial.println("detect_vehicle::state_changed_S7");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s7_previous_state = send_dp.ss[SENSOR_7];
         }
@@ -227,17 +211,14 @@ void detect_vehicle(void) {
         unsigned long distance = sonar.ping_cm();
 
         if (distance <= SCAN_DISTANCE_CM) {
-            Serial.println("detect_vehicle::vehicle_detected_S8");
             send_dp.ss[SENSOR_8] = ACTIVE;
         }
 
         if (s8_previous_state != send_dp.ss[SENSOR_8]) {
-            Serial.println("detect_vehicle::state_changed_S8");
             network.write(send_h, &send_dp, sizeof(DataPack));
             s8_previous_state = send_dp.ss[SENSOR_8];
         }
     #endif
-    Serial.println("detect_vehicle::finish");
 }
 #endif
 
@@ -264,6 +245,47 @@ void process_lesser_slave_sensor_data(RF24NetworkHeader &recv_h, DataPack *recv_
 }
 #endif
 
+
+#if BOARD_A2 || BOARD_A3 || BOARD_A4
+
+void turn_off_relay(void) {
+    if (previous_event == current_event)
+        return;
+
+    if (previous_seq == current_seq) 
+        return;
+
+    if (previous_manual == current_manual)
+        return;
+
+    #if   BOARD_A2
+
+        digitalWrite(LTR2_RELAY, LOW);
+        digitalWrite(LTY2_RELAY, LOW);
+        digitalWrite(LTG2_RELAY, LOW);
+        digitalWrite(R2_RELAY, LOW);
+        digitalWrite(Y2_RELAY, LOW);
+        digitalWrite(G2_RELAY, LOW);
+        digitalWrite(R4_RELAY, LOW);
+        digitalWrite(Y4_RELAY, LOW);
+        digitalWrite(G4_RELAY, LOW);
+
+    #elif BOARD_A3
+    
+        digitalWrite(PR1_RELAY, LOW);
+        digitalWrite(PG1_RELAY, LOW);
+    
+    
+    #elif BOARD_A4
+    
+        digitalWrite(PR2_RELAY, LOW);
+        digitalWrite(PG2_RELAY, LOW);
+    
+    #endif
+    
+}
+
+#endif
 
 void process_events(enum Events *e, bool *ea) {
     current_event = *e;
@@ -293,13 +315,13 @@ void process_manual(enum Events_Man *m, bool *ma) {
 
 
 void observe_events(void) {
-    Serial.println("observe_events::start");
     RF24NetworkHeader recv_h;
     DataPack recv_dp;
 
     previous_event = current_event;
     previous_seq = current_seq;
 
+    network.update();
     while (network.available()) {
         Serial.println("observe_events::network_available");
         network.read(recv_h, &recv_dp, sizeof(DataPack));
@@ -309,55 +331,26 @@ void observe_events(void) {
         #endif
 
         if (recv_dp.type == EVENT_T) {
-            process_events(&recv_dp.event, &recv_dp.event_active);
+            current_event = recv_dp.event;
+            event_active = recv_dp.event_active;
+            seq_active = recv_dp.seq_active;
+            man_active = recv_dp.man_active;
         }
         else if(recv_dp.type == SEQ_T) {
-            process_sequence(&recv_dp.seq, &recv_dp.seq_active);
+            current_seq = recv_dp.seq;
+            event_active = recv_dp.event_active;
+            seq_active = recv_dp.seq_active;
+            man_active = recv_dp.man_active;
         }
         else if (recv_dp.type == MAN_T) {
-            process_manual(&recv_dp.man, &recv_dp.man_active);
+            current_manual = recv_dp.man;
+            event_active = recv_dp.event_active;
+            seq_active = recv_dp.seq_active;
+            man_active = recv_dp.man_active;
             blink = recv_dp.blink;
         }
-
-    }
-    Serial.println("observe_events::finish");
-}
-
-#if BOARD_A2 || BOARD_A3 || BOARD_A4
-
-void turn_off_relay() {
-    if ((previous_event != current_event) || (previous_seq != current_seq)) {
-        _print_event(previous_event);
-        _print_event(current_event);
-
-        #if   BOARD_A2
-
-            digitalWrite(LTR2_RELAY, LOW);
-            digitalWrite(LTY2_RELAY, LOW);
-            digitalWrite(LTG2_RELAY, LOW);
-            digitalWrite(R2_RELAY, LOW);
-            digitalWrite(Y2_RELAY, LOW);
-            digitalWrite(G2_RELAY, LOW);
-            digitalWrite(R4_RELAY, LOW);
-            digitalWrite(Y4_RELAY, LOW);
-            digitalWrite(G4_RELAY, LOW);
-
-        #elif BOARD_A3
-        
-            digitalWrite(PR1_RELAY, LOW);
-            digitalWrite(PG1_RELAY, LOW);
-        
-        
-        #elif BOARD_A4
-        
-            digitalWrite(PR2_RELAY, LOW);
-            digitalWrite(PG2_RELAY, LOW);
-        
-        #endif
     }
 }
-
-#endif
 
 
 #if BOARD_A2 || BOARD_A3 || BOARD_A4
@@ -366,7 +359,31 @@ void turn_off_relay() {
 void run_event(void) {
     turn_off_relay();
 
-    Serial.println("run_event::start");
+    // Serial.println("run_event::start");
+    Serial.print("current_event ");
+    Serial.println(current_event);
+    Serial.println();
+    
+    Serial.print("current_seq ");
+    Serial.println(current_seq);
+    Serial.println();
+    
+    Serial.print("current_manual ");
+    Serial.println(current_manual);
+    Serial.println();
+
+    Serial.print("event_active ");
+    Serial.println(event_active);
+    Serial.println();
+
+
+    Serial.print("sequence_active ");
+    Serial.println(seq_active);
+    Serial.println();
+
+    Serial.print("manual_active ");
+    Serial.println(man_active);
+    Serial.println();
     
 
     if (event_active) {
@@ -377,6 +394,8 @@ void run_event(void) {
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -390,6 +409,7 @@ void run_event(void) {
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -403,6 +423,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -416,6 +437,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH); 
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -429,6 +451,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH); 
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -442,6 +465,7 @@ void run_event(void) {
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -455,6 +479,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -468,6 +493,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -481,6 +507,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -495,6 +522,7 @@ void run_event(void) {
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -508,6 +536,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -521,6 +550,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -536,6 +566,7 @@ void run_event(void) {
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(Y4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -549,6 +580,7 @@ void run_event(void) {
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -562,6 +594,7 @@ void run_event(void) {
                 digitalWrite(G2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -575,6 +608,7 @@ void run_event(void) {
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PG1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -588,6 +622,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PR1_RELAY, LOW);
                 digitalWrite(PG1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
@@ -601,6 +636,7 @@ void run_event(void) {
                 digitalWrite(Y2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PR1_RELAY, LOW);
                 digitalWrite(PR1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
@@ -614,6 +650,7 @@ void run_event(void) {
                 digitalWrite(R2_RELAY, HIGH);
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
+                digitalWrite(PR1_RELAY, LOW);
                 digitalWrite(PG1_RELAY, HIGH);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
@@ -632,9 +669,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_01B:
@@ -644,9 +683,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_02A:
@@ -656,9 +697,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_02B:
@@ -668,9 +711,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_03A:
@@ -680,9 +725,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_03B:
@@ -692,9 +739,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_04A:
@@ -704,9 +753,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_04B:
@@ -716,9 +767,11 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_05A:
@@ -728,9 +781,11 @@ void run_event(void) {
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PG1_RELAY, HIGH);
+                digitalWrite(PR1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
             #endif
+            break;
 
 
         case SEQ_05B:
@@ -741,9 +796,11 @@ void run_event(void) {
             #elif BOARD_A3
                 /// @todo blink PG1 and PG2 for 3 seconds
                 digitalWrite(PG1_RELAY, HIGH);
+                digitalWrite(PR1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
             #endif
+            break;
         }
 
     }
@@ -758,6 +815,7 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
@@ -772,6 +830,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -783,6 +842,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -797,6 +857,7 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
@@ -811,6 +872,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -822,6 +884,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -836,6 +899,7 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
@@ -850,6 +914,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -861,6 +926,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -876,6 +942,7 @@ void run_event(void) {
                 digitalWrite(R4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PR1_RELAY, HIGH);
+                digitalWrite(PG1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PR2_RELAY, HIGH);
             #endif
@@ -890,6 +957,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -901,6 +969,7 @@ void run_event(void) {
                     digitalWrite(R4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PR1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PR2_RELAY, HIGH);
                 #endif
@@ -915,6 +984,7 @@ void run_event(void) {
                 digitalWrite(G4_RELAY, HIGH);
             #elif BOARD_A3
                 digitalWrite(PG1_RELAY, HIGH);
+                digitalWrite(PR1_RELAY, LOW);
             #elif BOARD_A4
                 digitalWrite(PG2_RELAY, HIGH);
             #endif
@@ -929,6 +999,7 @@ void run_event(void) {
                     digitalWrite(Y4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PG2_RELAY, HIGH);
                 #endif
@@ -940,6 +1011,7 @@ void run_event(void) {
                     digitalWrite(Y4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PG2_RELAY, HIGH);
                 #endif
@@ -955,6 +1027,7 @@ void run_event(void) {
                     digitalWrite(Y4_RELAY, LOW);
                 #elif BOARD_A3
                     digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PG2_RELAY, HIGH);
                 #endif
@@ -966,6 +1039,7 @@ void run_event(void) {
                     digitalWrite(Y4_RELAY, HIGH);
                 #elif BOARD_A3
                     digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
                     digitalWrite(PG2_RELAY, HIGH);
                 #endif
@@ -973,7 +1047,7 @@ void run_event(void) {
             break;
         }
     }
-    Serial.println("run_event::start");       
+    // Serial.println("run_event::start");       
 }
 
 #endif
