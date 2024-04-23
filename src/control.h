@@ -6,7 +6,7 @@ enum ControlMode {
 };
 
 #define BM_TOTAL 8
-#define MM_TOTAL 6
+#define MM_TOTAL 7
 
 #define B1_IDX 0
 #define B2_IDX 1

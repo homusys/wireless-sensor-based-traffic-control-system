@@ -61,6 +61,7 @@ unsigned long time_last = 0;
 short blinker = 0;
 unsigned long blink_time_last, blink_time_current;
 bool is_switching = false;
+short ctrl_cntr = 0;
 
 
 void count_green(void) {
@@ -160,6 +161,7 @@ void process_network_data(void) {
 
         
         if (recv_dp.type == SENSOR_T) {
+            Serial.println("RECV SENSOR");
             // Serial.println("process_network_data::sensor_data_available");
             if (is_bypass) { continue; } // ignore any sensor updates during bypass mode
 
@@ -222,12 +224,14 @@ void process_network_data(void) {
             case BYPASS:
                 is_bypass = true;
                 is_manual = false;
+            
                 for (size_t sensor_index=0; sensor_index<SENSOR_COUNT; ++sensor_index) {
                     main_sensor_states[sensor_index] = recv_dp.ss[sensor_index];
                     record_sensor_data_time(sensor_index);
                 }
                 break;
             case MANUAL:
+                
                 is_bypass = false;
                 is_manual = true;
                 is_switching = false;
@@ -241,6 +245,9 @@ void process_network_data(void) {
                 current_manual = recv_dp.man;
                 break;
             }
+        }
+        else {
+            Serial.println("NO_DATA");
         }
     }
 
@@ -763,7 +770,6 @@ void run_event(void) {
 
 
 void broadcast_default_mode_2(void) {
-    Serial.println("BROADCASTING....");
     RF24NetworkHeader send_b2(board2);
     RF24NetworkHeader send_b3(board3);
     RF24NetworkHeader send_b4(board4);
@@ -979,6 +985,7 @@ void run_default_mode_sequence(void) {
             current_sequence = SEQ_01A;
             turn_off_relays(1);
         }
+        seq_run = 0;
         break;
     }
 }
@@ -1085,19 +1092,36 @@ void broadcast_manual_mode(void) {
 
 
 void run_manual_blink_mode_scenarios(enum Events_Man event) {
+    Serial.println("BLINKIKNG>....");
     enum Events_Man ce = event;
     enum Events_Man pe = event;
 
     unsigned long prev = millis();
+    unsigned long exit = millis();
     unsigned long curr = millis();
     unsigned long const interval = 3000;
     short blink = 0;
 
+    if (pe != ce) {
+        digitalWrite(LTR1_RELAY, LOW);
+        digitalWrite(LTY1_RELAY, LOW);
+        digitalWrite(LTG1_RELAY, LOW);
+        digitalWrite(R1_RELAY , LOW);
+        digitalWrite(Y1_RELAY , LOW);
+        digitalWrite(G1_RELAY , LOW);
+        digitalWrite(R3_RELAY , LOW);
+        digitalWrite(Y3_RELAY , LOW);
+        digitalWrite(G3_RELAY , LOW);
+    }
 
-    while (curr - prev >= interval) {
+    while (1) {
+        if (curr - exit >= interval) {
+            break;
+        }
 
         if (curr - prev >= BLINK_INTERVAL) {
             blink += 1;
+            prev = curr;
         }
 
         // broadcast
@@ -1125,18 +1149,6 @@ void run_manual_blink_mode_scenarios(enum Events_Man event) {
         network.write(send_b6, &send_dp, sizeof(DataPack));
         network.write(send_b7, &send_dp, sizeof(DataPack));
         network.write(send_b8, &send_dp, sizeof(DataPack));
-
-        if (pe != ce) {
-            digitalWrite(LTR1_RELAY, LOW);
-            digitalWrite(LTY1_RELAY, LOW);
-            digitalWrite(LTG1_RELAY, LOW);
-            digitalWrite(R1_RELAY , LOW);
-            digitalWrite(Y1_RELAY , LOW);
-            digitalWrite(G1_RELAY , LOW);
-            digitalWrite(R3_RELAY , LOW);
-            digitalWrite(Y3_RELAY , LOW);
-            digitalWrite(G3_RELAY , LOW);
-        }
 
         switch (event) {
         case SCENE_M1B:
@@ -1217,6 +1229,8 @@ void run_manual_blink_mode_scenarios(enum Events_Man event) {
 
 
 void run_manual_mode_scenarios(void) {
+    Serial.print("current_manual: ");
+    Serial.println(current_manual);
 
     switch (current_manual) {
     case SCENE_M1A:
@@ -1280,6 +1294,15 @@ void run_manual_mode_scenarios(void) {
             digitalWrite(Y3_RELAY, HIGH);
         }
         break;
+
+    case SCENE_M7A:
+        Serial.println("SEQUENCE_CONTRL");
+        if (seq_run <= 2) {
+            seq_run += 1;
+        }
+
+        broadcast_default_mode_2();
+        run_default_mode_sequence();
     }
 }
 
@@ -1350,8 +1373,10 @@ void loop(void) {
 
     /// MANUAL MODE
     if (is_manual) {
-        if (is_bypass) 
+        if (is_bypass) {
+            Serial.println("BYPASS");
             goto invalid_manual;
+        }
 
         broadcast_manual_mode();
         run_manual_mode_scenarios();
@@ -1371,9 +1396,6 @@ void loop(void) {
         if (seq_run <= 2) {
             seq_run += 1;
         }
-        
-        Serial.print("current_seq: ");
-        Serial.println(current_sequence);
 
         broadcast_default_mode_2();
         run_default_mode_sequence();

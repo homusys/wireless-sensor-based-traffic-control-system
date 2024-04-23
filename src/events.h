@@ -136,7 +136,8 @@ enum Events_Man {
     SCENE_M4B,
     SCENE_M5A,
     SCENE_M5B,
-    SCENE_M6A
+    SCENE_M6A,
+    SCENE_M7A // SEQUENCE
 };
 
 #define BLINK_INTERVAL 500

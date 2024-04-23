@@ -19,16 +19,16 @@
 // ========= NETWORK CONSTANTS ========= //
 const uint16_t board1 = 000; // main_board  ARDUINO 1 (MEGA2560EMBED)
 const uint16_t board2 = 001; // slave_board ARDUINO 2
-const uint16_t board3 = 002; // slave_board ARDUINO 3
+const uint16_t board3 = 011; // slave_board ARDUINO 3
 
-const uint16_t board4 = 012; // slave_board ARDUINO 4
-const uint16_t board5 = 003; // slave_board ARDUINO 5
+const uint16_t board4 = 021; // slave_board ARDUINO 4
+const uint16_t board5 = 002; // slave_board ARDUINO 5
 
-const uint16_t board6 = 013; // slave_board ARDUINO 6
-const uint16_t board7 = 004; // slave_board ARDUINO 7
-const uint16_t board8 = 005; // slave_board ARDUINO 8
+const uint16_t board6 = 003; // slave_board ARDUINO 6
+const uint16_t board7 = 012; // slave_board ARDUINO 7
+const uint16_t board8 = 013; // slave_board ARDUINO 8
 
-const uint16_t board9 = 011; // controller_board
+const uint16_t board9 = 005; // controller_board
 
 const uint16_t board_master = board1; // main_board
 
@@ -227,6 +227,33 @@ const uint16_t board_master = board1; // main_board
     #define M6_LED 27
     #define M7_LED 28
     #define M8_LED 29
+
+#elif defined(BOARD_CONTROL_TEST)
+    int8_t current_board = board9;
+
+    #define NRF24L01_MOSI 11
+    #define NRF24L01_MISO 12
+    #define NRF24L01_SCK  13
+    #define NRF24L01_CSN  10
+    #define NRF24L01_CE    9
+
+    #define B1_PIN  5
+    #define B2_PIN A0
+    #define B3_PIN A0
+    #define B4_PIN A0
+    #define B5_PIN A0
+    #define B6_PIN A0
+    #define B7_PIN A0
+    #define B8_PIN A0
+    
+    #define M1_PIN  2
+    #define M2_PIN A0
+    #define M3_PIN A0
+    #define M4_PIN A0
+    #define M5_PIN A0
+    #define M6_PIN A0
+    #define M7_PIN  3
+    #define M8_PIN  4
 #endif
 
 
