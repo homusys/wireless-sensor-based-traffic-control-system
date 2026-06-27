@@ -21,12 +21,13 @@ unsigned long previous_time = 0;
 bool is_bypass = false;
 bool is_manual = false;
 
-short prev_bbtn_state[BM_TOTAL] = {0};
-short curr_bbtn_state[BM_TOTAL] = {0};
+int prev_bbtn_state[BM_TOTAL] = {0};
+int curr_bbtn_state[BM_TOTAL] = {0};
 
-short prev_mbtn_state[MM_TOTAL] = {0};
-short curr_mbtn_state[MM_TOTAL] = {0};
-short manual_sw_state = LOW;
+int prev_mbtn_state[MM_TOTAL] = {0};
+int curr_mbtn_state[MM_TOTAL] = {0};
+int bypass_sw_state = LOW;
+int manual_sw_state = LOW;
 
 enum SensorState bypass_sensor_states[BM_TOTAL];
 enum Events_Man previous_manual = SCENE_M6A;
@@ -51,13 +52,27 @@ void turn_off_manual_leds(void) {
 
 enum Events_Man get_manual_event(short index) {
     switch (index) {
-    case 0: return SCENE_M1A;
-    case 1: return SCENE_M2A;
-    case 2: return SCENE_M3A;
-    case 3: return SCENE_M4A;
-    case 4: return SCENE_M5A;
-    case 5: return SCENE_M6A;
-    case 6: return SCENE_M7A;
+    case 0: 
+        digitalWrite(M1_LED, LOW);
+        return SCENE_M1A;
+    case 1: 
+        digitalWrite(M2_LED, LOW);
+        return SCENE_M2A;
+    case 2: 
+        digitalWrite(M3_LED, LOW);
+        return SCENE_M3A;
+    case 3: 
+        digitalWrite(M4_LED, LOW);
+        return SCENE_M4A;
+    case 4: 
+        digitalWrite(M5_LED, LOW);
+        return SCENE_M5A;
+    case 5: 
+        digitalWrite(M6_LED, LOW);
+        return SCENE_M6A;
+    case 6: 
+        digitalWrite(M7_LED, LOW);
+        return SCENE_M7A;
     }
     return SCENE_M6A;
 }
@@ -77,7 +92,7 @@ void broadcast_control(void) {
 
 
     case BYPASS:
-        for (uint8_t sensor = 0; sensor < BM_TOTAL; ++sensor) {
+        for (size_t sensor=0; sensor < BM_TOTAL; ++sensor) {
             send_dp.ss[sensor] = bypass_sensor_states[sensor];
         }
         break;
@@ -92,6 +107,7 @@ void broadcast_control(void) {
 
 
 void setup(void) {
+    SPI.begin();
     Serial.begin(115200);
 
     #if BOARD_CONTROL
@@ -103,6 +119,7 @@ void setup(void) {
     pinMode(B6_PIN, INPUT);
     pinMode(B7_PIN, INPUT);
     pinMode(B8_PIN, INPUT);
+    pinMode(B9_PIN, INPUT);
     
     pinMode(M1_PIN, INPUT);
     pinMode(M2_PIN, INPUT);
@@ -168,6 +185,7 @@ void loop(void) {
         curr_bbtn_state[5] = digitalRead(B6_PIN);
         curr_bbtn_state[6] = digitalRead(B7_PIN);
         curr_bbtn_state[7] = digitalRead(B8_PIN);
+        bypass_sw_state    = digitalRead(B9_PIN);
         
         // ========= READ MANUAL BTNS ========= //
         curr_mbtn_state[0] = digitalRead(M1_PIN);
@@ -190,33 +208,53 @@ void loop(void) {
         manual_sw_state    = digitalRead(M8_PIN);
     #endif
     
-    is_manual = false;
+
     // ========= PROCESS INPUTS ========= //
+    
+    is_bypass = false;
+    if (bypass_sw_state == HIGH) {
+        is_bypass = true;
+    }
+
+
+    // If switch is in manual state then manual mode is true
+    // bypass mode is ignored during manual mode
+    is_manual = false;
     if (manual_sw_state == HIGH) {
         is_manual = true;
+        is_bypass = false;
 
         #if BOARD_CONTROL
+        // light up LED
         digitalWrite(M8_LED, HIGH);
         #endif
     }
     else {
+        turn_off_manual_leds();
         current_manual = SCENE_M6A;
         
         #if BOARD_CONTROL
+        // turn off LED
         digitalWrite(M8_LED, LOW);
         #endif
     }
 
 
-    is_bypass = false;
-    // ========= MANUAL ========= //
     if (is_manual) {
+        // The controller is in manual mode
+        Serial.println("Currently in manual mode");
         current_mode = MANUAL;
-        for (short i=0; i<MM_TOTAL; ++i) {
+
+
+        for (size_t i=0; i<MM_TOTAL; ++i) {
+            // only run when a current manual btn state changed.
             if (prev_mbtn_state[i] != curr_mbtn_state[i]) {
+
+                // Execute when there is a high button state
                 if (curr_mbtn_state[i] == HIGH) {
 
-                    Serial.println("PRESSED");
+                    // Only one button state should be high
+                    turn_off_manual_leds();
                     previous_manual = current_manual;
                     current_manual  = get_manual_event(i);
                     break;
@@ -226,55 +264,44 @@ void loop(void) {
             }
         }
 
-        Serial.print("current_manual: ");
-        Serial.print(current_manual);
     }
 
 
-    // To save computing cycles, do not process bypass mode on manual mode.
-    else {
-        current_mode = NOCONTROL;
-        for (short i=0; i<BM_TOTAL; ++i) {
+    else if (is_bypass) {
+        // The controller is in bypass mode
+        Serial.println("Currently in bypass mode");
+        current_mode = BYPASS;
+
+        for (size_t i=0; i<BM_TOTAL; ++i) {
             bypass_sensor_states[i] = INACTIVE;
 
-            if (prev_bbtn_state[i] != curr_bbtn_state[i]) {
-                if (curr_mbtn_state[i] == HIGH) {
-                    
-
-                    Serial.println("BYPASSED");
-                    current_mode = BYPASS;
-                    is_bypass = true;
-                    // ========= BYPASS ========= //
-                    bypass_sensor_states[i] = ACTIVE;
-
-                }
-                prev_bbtn_state[i] = curr_bbtn_state[i];
+            // if (prev_bbtn_state[i] != curr_bbtn_state[i]) {
+            if (curr_bbtn_state[i] == HIGH) {
+                current_mode = BYPASS;
+                bypass_sensor_states[i] = ACTIVE;
+                Serial.print("------------- BypassBtn: ");
+                Serial.println(i+1);
             }
-        }
-
-
-        // ========= DEFAULT ========= //
-        if (!is_bypass) {
-            /// @todo reset everything to default
-            previous_manual = SCENE_M6A;
-            current_manual  = SCENE_M6A;
-
-            memset(curr_bbtn_state, 0x0, sizeof(curr_bbtn_state));
-            memset(prev_bbtn_state, 0x0, sizeof(prev_bbtn_state));
-
-            memset(curr_mbtn_state, 0x0, sizeof(curr_mbtn_state));
-            memset(prev_mbtn_state, 0x0, sizeof(prev_mbtn_state));
+            //     prev_bbtn_state[i] = curr_bbtn_state[i];
+            // }
         }
     }
 
-    /// @todo invoke send function
+
+    else {
+        // The controller is not running
+        Serial.println("Not running any mode");
+        current_mode = NOCONTROL;
+
+        previous_manual = SCENE_M6A;
+        current_manual  = SCENE_M6A;
+
+        memset(curr_bbtn_state, 0, sizeof(curr_bbtn_state));
+        memset(prev_bbtn_state, 0, sizeof(prev_bbtn_state));
+
+        memset(curr_mbtn_state, 0, sizeof(curr_mbtn_state));
+        memset(prev_mbtn_state, 0, sizeof(prev_mbtn_state));
+    }
+
     broadcast_control();
-
-    Serial.print("is_bypass: ");
-    Serial.println(is_bypass);
-    Serial.print("is_manual: ");
-    Serial.println(is_manual);
-    Serial.print("current_mode: ");
-    Serial.println(current_mode);
-
 }

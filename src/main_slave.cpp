@@ -16,7 +16,7 @@
 
 
 // ========= BOARD CONFIG ========= //
-#define BOARD_A3 1
+#define BOARD_A4 1
 
 
 #include "boards.h"
@@ -237,7 +237,7 @@ void process_lesser_slave_sensor_data(RF24NetworkHeader &recv_h, DataPack *recv_
         #elif BOARD_A6
             if (recv_h.from_node == board8) { 
                 Serial.println("process_lesser_slave_sensor_data::receive_src_ok");
-                s8_received_state = recv_dp.ss[SENSOR_8];
+                s8_received_state = recv_dp->ss[SENSOR_8];
             }
         #endif
     }
@@ -249,13 +249,13 @@ void process_lesser_slave_sensor_data(RF24NetworkHeader &recv_h, DataPack *recv_
 #if BOARD_A2 || BOARD_A3 || BOARD_A4
 
 void turn_off_relay(void) {
-    if (previous_event == current_event)
+    if ((previous_event == current_event) && event_active)
         return;
 
-    if (previous_seq == current_seq) 
+    if ((previous_seq == current_seq) && seq_active) 
         return;
 
-    if (previous_manual == current_manual)
+    if ((previous_manual == current_manual) && man_active)
         return;
 
     #if   BOARD_A2
@@ -320,6 +320,7 @@ void observe_events(void) {
 
     previous_event = current_event;
     previous_seq = current_seq;
+    previous_manual = current_manual;
 
     network.update();
     while (network.available()) {
@@ -1022,26 +1023,26 @@ void run_event(void) {
         case SCENE_M6A:
             if (blink % 2 == 0) {
                 #if   BOARD_A2
-                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(LTR2_RELAY, LOW);
                     digitalWrite(Y2_RELAY, LOW);
                     digitalWrite(Y4_RELAY, LOW);
                 #elif BOARD_A3
-                    digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                     digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
-                    digitalWrite(PG2_RELAY, HIGH);
+                    digitalWrite(PG2_RELAY, LOW);
                 #endif
             }
             else {
                 #if   BOARD_A2
-                    digitalWrite(LTR2_RELAY, HIGH);
+                    digitalWrite(LTR2_RELAY, LOW);
                     digitalWrite(Y2_RELAY, HIGH);
                     digitalWrite(Y4_RELAY, HIGH);
                 #elif BOARD_A3
-                    digitalWrite(PG1_RELAY, HIGH);
+                    digitalWrite(PG1_RELAY, LOW);
                     digitalWrite(PR1_RELAY, LOW);
                 #elif BOARD_A4
-                    digitalWrite(PG2_RELAY, HIGH);
+                    digitalWrite(PG2_RELAY, LOW);
                 #endif
             }
             break;

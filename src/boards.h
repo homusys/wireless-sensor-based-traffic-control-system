@@ -196,8 +196,8 @@ const uint16_t board_master = board1; // main_board
     #define NRF24L01_MOSI 51
     #define NRF24L01_MISO 50
     #define NRF24L01_SCK  52
-    #define NRF24L01_CSN   8
-    #define NRF24L01_CE    7
+    #define NRF24L01_CSN  30
+    #define NRF24L01_CE   31
     
 
     /// @todo replace pins with proper pins
@@ -209,6 +209,7 @@ const uint16_t board_master = board1; // main_board
     #define B6_PIN  9
     #define B7_PIN 10
     #define B8_PIN 11
+    #define B9_PIN 32
 
     #define M1_PIN 14 
     #define M2_PIN 15
